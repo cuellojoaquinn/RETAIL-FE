@@ -1,0 +1,62 @@
+.tabla-articulos {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.tabla-articulos th {
+  background-color: #2f2c46;
+  color: white;
+  text-align: left;
+  padding: 12px;
+  font-weight: 500;
+}
+
+.tabla-articulos td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.estado {
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.estado.activo {
+  background-color: #c6f4ea;
+  color: #1ba27a;
+}
+
+.estado.inactivo {
+  background-color: #e0e3ec;
+  color: #475569;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.acciones button {
+  background: #f4f4f4;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.acciones button:hover {
+  background: #e2e2e2;
+}
+
+.acciones svg {
+  font-size: 16px;
+  color: #333;
+}

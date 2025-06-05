@@ -1,0 +1,15 @@
+.articulos-container {
+  padding: 2rem;
+  background-color: var(--color-background);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.articulos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 2rem;
+}

@@ -1,0 +1,27 @@
+.filtros-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filtro-boton {
+  background-color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.filtro-boton:hover {
+  background-color: #f0f0f0;
+}
+
+.filtro-boton.activo {
+  background-color: #ece9fd;
+  color: #5b3cc4;
+  font-weight: bold;
+}

@@ -1,0 +1,22 @@
+.filtros-rapidos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filtro-rapido {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
+  background-color: var(--color-acento-white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.filtro-rapido.activo {
+  background-color: var(--color-background);
+  color: var(--color-primario);
+  font-weight: bold;
+  border: 1px solid var(--color-primario);
+}

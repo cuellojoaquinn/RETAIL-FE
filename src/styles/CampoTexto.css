@@ -1,0 +1,15 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.campo label {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.campo input.input-error {
+  border: 2px solid var(--color-acento-red);
+  background-color: #fff5f5;
+}

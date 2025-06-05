@@ -1,0 +1,29 @@
+.sidebar {
+  width: 220px;
+  background: var(--color-acento-white);
+  height: 100vh;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  color: var(--color-texto);
+  cursor: pointer;
+  gap: 10px;
+  transition: all 0.3s ease;
+  font-size: 1.2rem; /* 16px */
+}
+
+.sidebar-item:hover {
+  color: #000;
+}
+
+.sidebar-item.active {
+  color: #000;
+  font-weight: 600;
+}

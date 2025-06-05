@@ -1,0 +1,121 @@
+/* Contenedor general */
+.alta-articulo-container {
+  padding: 2rem;
+  background-color: #f5f6fc;
+  min-height: 100vh;
+}
+
+/* Header con título e ícono de usuario */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ruta {
+  color: #999;
+  font-weight: 500;
+}
+
+.boton-usuario {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #c3b8f0;
+  color: white;
+  font-weight: bold;
+  border: none;
+  cursor: default;
+}
+
+/* Tarjeta de formulario */
+.formulario-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+}
+
+/* Encabezado de sección */
+.formulario-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.formulario-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.icono-titulo {
+  font-size: 24px;
+  color: #5b3cc4;
+}
+
+/* Grilla de inputs */
+.formulario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+/* Inputs y textarea */
+.campo {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.campo label {
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.campo input,
+.campo textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #f6f6ff;
+  font-size: 14px;
+}
+
+/* Área de texto más grande */
+.campo.full {
+  grid-column: span 2;
+}
+
+/* Botón de guardar */
+.boton-guardar {
+  background-color: #5b3cc4;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-top: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.boton-guardar:hover {
+  background-color: #4931a4;
+}
+
+.breadcrumb-link {
+  color: var(--color-texto);
+  cursor: pointer;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--color-primario);
+  text-decoration: underline;
+}
