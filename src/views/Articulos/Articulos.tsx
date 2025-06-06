@@ -194,7 +194,7 @@ const Articulos = () => {
     navigate("/articulos/nuevo");
   };
   const handleEditar = (codigo: string) => {
-    alert(`Editar artículo ${codigo}`);
+    navigate(`/articulos/editar/${codigo}`);
   };
 
   const handleEliminar = (codigo: string) => {
@@ -247,7 +247,6 @@ const Articulos = () => {
               </span>
             ),
           },
-          { header: "Proveedor", render: (a) => a.proveedor },
           { header: "Precio", render: (a) => a.precio },
           { header: "Inventario", render: (a) => a.inventario },
           { header: "Stock de seguridad", render: (a) => a.stockSeguridad },

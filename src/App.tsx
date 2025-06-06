@@ -10,6 +10,7 @@ import Articulos from "./views/Articulos/Articulos";
 import AltaArticulo from "./views/Articulos/AltaArticulo";
 
 import "./App.css";
+import EditarArticulo from "./views/Articulos/EditarArticulo";
 
 function App() {
   return (
@@ -24,6 +25,10 @@ function App() {
             <Route path='/proveedores' element={<div>Proveedores</div>} />
             <Route path='/ordenes' element={<div>Órdenes de compra</div>} />
             <Route path='/ventas' element={<div>Ventas</div>} />
+            <Route
+              path='/articulos/editar/:codigo'
+              element={<EditarArticulo />}
+            />
           </Routes>
         </main>
       </div>

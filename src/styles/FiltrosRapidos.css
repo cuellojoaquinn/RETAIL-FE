@@ -5,13 +5,13 @@
 }
 
 .filtro-rapido {
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 32px;
   border: none;
   background-color: var(--color-acento-white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .filtro-rapido.activo {

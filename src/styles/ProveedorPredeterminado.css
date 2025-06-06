@@ -1,0 +1,45 @@
+.contenedor-proveedor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0%;
+  border-radius: 16px;
+  width: fit-content;
+  margin-top: 8px;
+}
+
+.etiqueta-predeterminada {
+  background-color: var(--color-acento-green);
+  color: var(--color-acento-white);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 18px;
+  border-radius: 999px;
+}
+
+.nombre-proveedor {
+  color: var(--color-texto);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.select-proveedor {
+  width: 50%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-secundario);
+  background-color: #f6f9ff;
+  color: var(--color-texto);
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  margin-top: 8px;
+}
+
+.select-proveedor:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 2px rgba(96, 75, 232, 0.2);
+}

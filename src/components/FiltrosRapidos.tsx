@@ -5,7 +5,7 @@ interface Props {
   onSeleccionar: (valor: string) => void;
 }
 
-const opciones = ["Todos", "A reponer", "Faltantes", "Por proveedor"];
+const opciones = ["Todos", "A reponer", "Faltantes"];
 
 const FiltrosRapidos = ({ activo, onSeleccionar }: Props) => {
   return (
