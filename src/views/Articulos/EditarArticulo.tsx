@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import FormularioArticulo from "../../components/FormularioArticulo";
+import { apiPut, API_ENDPOINTS, handleApiError } from "../../config/api";
 
 const EditarArticulo = () => {
   const { codigo } = useParams();
@@ -7,13 +8,11 @@ const EditarArticulo = () => {
 
   const handleGuardar = async (articuloActualizado: any) => {
     try {
-      const res = await fetch(`http://localhost:3000/articulos/${codigo}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(articuloActualizado),
-      });
+      const res = await apiPut(API_ENDPOINTS.ARTICULO_BY_ID(codigo!), articuloActualizado);
 
-      if (!res.ok) throw new Error("Error al actualizar el artículo");
+      if (!res.ok) {
+        await handleApiError(res);
+      }
 
       alert("Artículo actualizado correctamente");
       navigate("/articulos");

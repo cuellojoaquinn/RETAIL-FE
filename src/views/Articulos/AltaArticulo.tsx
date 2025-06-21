@@ -67,7 +67,6 @@ const AltaArticulo = () => {
 
     try {
       await new Promise((res) => setTimeout(res, 1000));
-      console.log("Guardado:", nuevoArticulo);
       navigate("/articulos");
     } catch (error) {
       console.error("Error:", error);

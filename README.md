@@ -2,7 +2,62 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+## Configuración de la API
+
+### Variables de Entorno
+
+El proyecto usa variables de entorno para configurar la URL de la API. Para configurar:
+
+1. **Copia el archivo de ejemplo:**
+   ```bash
+   cp env.example .env.local
+   ```
+
+2. **Edita `.env.local` y cambia la URL de la API:**
+   ```env
+   VITE_API_BASE_URL=http://localhost:3000
+   ```
+
+### Configuración Centralizada
+
+La configuración de la API está centralizada en `src/config/api.ts`. Este archivo incluye:
+
+- **URL base de la API** (configurable por variables de entorno)
+- **Funciones helper** para peticiones HTTP (`apiGet`, `apiPost`, `apiPut`, `apiDelete`)
+- **Endpoints predefinidos** para todos los recursos
+- **Manejo de errores** consistente
+
+### Uso en el código
+
+```typescript
+import { apiGet, apiPost, API_ENDPOINTS } from '../config/api';
+
+// Obtener artículos
+const response = await apiGet(API_ENDPOINTS.ARTICULOS);
+
+// Crear un artículo
+const newArticle = await apiPost(API_ENDPOINTS.ARTICULOS, articleData);
+
+// Obtener artículo por ID
+const article = await apiGet(API_ENDPOINTS.ARTICULO_BY_ID(123));
+```
+
+### Cambiar la URL de la API
+
+Para cambiar la URL de la API, simplemente edita el archivo `.env.local`:
+
+```env
+# Desarrollo local
+VITE_API_BASE_URL=http://localhost:3000
+
+# Servidor de desarrollo
+VITE_API_BASE_URL=http://dev-api.tudominio.com
+
+# Producción
+VITE_API_BASE_URL=https://api.tudominio.com
+```
+
+## Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh

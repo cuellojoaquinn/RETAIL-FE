@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TablaGenerica from '../../components/TablaGenerica';
 import BotonAgregar from '../../components/BotonAgregar';
-import ventaService from '../../services/venta.service';
+import ventaService from '../../services/venta.service.real';
 import type { Venta } from '../../services/venta.service';
 import { MdRefresh, MdWarning, MdShoppingCart, MdAttachMoney } from 'react-icons/md';
 

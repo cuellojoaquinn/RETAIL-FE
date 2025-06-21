@@ -6,11 +6,8 @@ import BotonAgregar from '../../components/BotonAgregar';
 import Notificacion from '../../components/Notificacion';
 import CampoTexto from '../../components/CampoText';
 import { MdEdit, MdDelete, MdSave, MdClose } from 'react-icons/md';
-
-interface Proveedor {
-  id: number;
-  nombre: string;
-}
+import proveedorService from '../../services/proveedor.service.real';
+import type { Proveedor, ArticuloProveedor } from '../../services/proveedor.service.real';
 
 interface Articulo {
   nombre: string;
@@ -29,346 +26,19 @@ interface ErrorModal {
   subtitulo: string;
 }
 
-const proveedoresMock: Proveedor[] = [
-  { id: 1, nombre: 'Proveedor A - Logitech' },
-  { id: 2, nombre: 'Proveedor B - Corsair' },
-  { id: 3, nombre: 'Proveedor C - Samsung' },
-  { id: 4, nombre: 'Proveedor D - Sony' },
-  { id: 5, nombre: 'Proveedor E - HP' },
-  { id: 6, nombre: 'Proveedor F - Kingston' },
-  { id: 7, nombre: 'Proveedor G - EVGA' },
-  { id: 8, nombre: 'Proveedor H - MSI' },
-  { id: 9, nombre: 'Proveedor I - Seagate' },
-  { id: 10, nombre: 'Proveedor J - TP-Link' },
-  { id: 11, nombre: 'Proveedor K - Blue Microphones' },
-  { id: 12, nombre: 'Proveedor L - Dell' },
-  { id: 13, nombre: 'Proveedor M - LG' },
-  { id: 14, nombre: 'Proveedor N - Razer' },
-  { id: 15, nombre: 'Proveedor O - Intel' }
-];
-
-const articulosMock: { [key: number]: Articulo[] } = {
-  1: [
-    {
-      nombre: 'Mouse Logitech G502 HERO',
-      codArticulo: 'A001',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '5',
-      costoUnidad: 1500,
-      costoPedido: 100,
-      tiempoRevision: '30',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Teclado Logitech G Pro X',
-      codArticulo: 'A021',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '7',
-      costoUnidad: 2800,
-      costoPedido: 120,
-      tiempoRevision: '45',
-      esPredeterminado: false
-    },
-    {
-      nombre: 'Webcam Logitech C920',
-      codArticulo: 'A022',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '4',
-      costoUnidad: 12000,
-      costoPedido: 80,
-      tiempoRevision: '20',
-      esPredeterminado: false
-    }
-  ],
-  2: [
-    {
-      nombre: 'Teclado Mecánico Corsair K70',
-      codArticulo: 'A002',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '7',
-      costoUnidad: 3000,
-      costoPedido: 150,
-      tiempoRevision: '60',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Memoria RAM Corsair Vengeance 16GB',
-      codArticulo: 'A023',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '10',
-      costoUnidad: 11000,
-      costoPedido: 200,
-      tiempoRevision: '90',
-      esPredeterminado: false
-    }
-  ],
-  3: [
-    {
-      nombre: 'Monitor LED 24" Samsung FHD',
-      codArticulo: 'A003',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '10',
-      costoUnidad: 25000,
-      costoPedido: 200,
-      tiempoRevision: '30',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'SSD 1TB Samsung 970 EVO Plus',
-      codArticulo: 'A006',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '6',
-      costoUnidad: 9000,
-      costoPedido: 150,
-      tiempoRevision: '45',
-      esPredeterminado: false
-    },
-    {
-      nombre: 'Tablet Samsung Galaxy Tab S7',
-      codArticulo: 'A014',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '12',
-      costoUnidad: 180000,
-      costoPedido: 300,
-      tiempoRevision: '60',
-      esPredeterminado: false
-    }
-  ],
-  4: [
-    {
-      nombre: 'Auriculares Bluetooth Sony WH-1000XM4',
-      codArticulo: 'A004',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '3',
-      costoUnidad: 8000,
-      costoPedido: 80,
-      tiempoRevision: '15',
-      esPredeterminado: true
-    }
-  ],
-  5: [
-    {
-      nombre: 'Impresora Láser HP LaserJet Pro',
-      codArticulo: 'A008',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '12',
-      costoUnidad: 90000,
-      costoPedido: 500,
-      tiempoRevision: '90',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Laptop HP Pavilion 15',
-      codArticulo: 'A024',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '15',
-      costoUnidad: 320000,
-      costoPedido: 800,
-      tiempoRevision: '120',
-      esPredeterminado: false
-    }
-  ],
-  6: [
-    {
-      nombre: 'Memoria RAM 16GB Kingston Fury',
-      codArticulo: 'A007',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '8',
-      costoUnidad: 12000,
-      costoPedido: 180,
-      tiempoRevision: '30',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'SSD 500GB Kingston A2000',
-      codArticulo: 'A025',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '5',
-      costoUnidad: 4500,
-      costoPedido: 100,
-      tiempoRevision: '20',
-      esPredeterminado: false
-    }
-  ],
-  7: [
-    {
-      nombre: 'Fuente de Poder 750W EVGA',
-      codArticulo: 'A009',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '9',
-      costoUnidad: 13500,
-      costoPedido: 120,
-      tiempoRevision: '45',
-      esPredeterminado: true
-    }
-  ],
-  8: [
-    {
-      nombre: 'Placa de Video RTX 4060 MSI',
-      codArticulo: 'A010',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '15',
-      costoUnidad: 400000,
-      costoPedido: 1000,
-      tiempoRevision: '180',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Motherboard MSI B550 Gaming',
-      codArticulo: 'A026',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '12',
-      costoUnidad: 85000,
-      costoPedido: 300,
-      tiempoRevision: '90',
-      esPredeterminado: false
-    }
-  ],
-  9: [
-    {
-      nombre: 'Disco Duro 2TB Seagate Barracuda',
-      codArticulo: 'A011',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '7',
-      costoUnidad: 7500,
-      costoPedido: 100,
-      tiempoRevision: '30',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Disco Duro 4TB Seagate IronWolf',
-      codArticulo: 'A027',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '10',
-      costoUnidad: 15000,
-      costoPedido: 150,
-      tiempoRevision: '60',
-      esPredeterminado: false
-    }
-  ],
-  10: [
-    {
-      nombre: 'Router WiFi TP-Link Archer C7',
-      codArticulo: 'A012',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '5',
-      costoUnidad: 15000,
-      costoPedido: 80,
-      tiempoRevision: '20',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Switch TP-Link 8-Port Gigabit',
-      codArticulo: 'A028',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '6',
-      costoUnidad: 8000,
-      costoPedido: 60,
-      tiempoRevision: '30',
-      esPredeterminado: false
-    }
-  ],
-  11: [
-    {
-      nombre: 'Micrófono USB Blue Yeti',
-      codArticulo: 'A013',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '4',
-      costoUnidad: 25000,
-      costoPedido: 120,
-      tiempoRevision: '25',
-      esPredeterminado: true
-    }
-  ],
-  12: [
-    {
-      nombre: 'Laptop Dell Inspiron 15 3000',
-      codArticulo: 'A016',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '14',
-      costoUnidad: 350000,
-      costoPedido: 800,
-      tiempoRevision: '120',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Laptop Dell XPS 13',
-      codArticulo: 'A029',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '18',
-      costoUnidad: 550000,
-      costoPedido: 1200,
-      tiempoRevision: '150',
-      esPredeterminado: false
-    }
-  ],
-  13: [
-    {
-      nombre: 'Monitor 27" 4K LG UltraFine',
-      codArticulo: 'A019',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '12',
-      costoUnidad: 450000,
-      costoPedido: 400,
-      tiempoRevision: '90',
-      esPredeterminado: true
-    }
-  ],
-  14: [
-    {
-      nombre: 'Auriculares Gaming Razer Kraken',
-      codArticulo: 'A020',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '6',
-      costoUnidad: 18000,
-      costoPedido: 100,
-      tiempoRevision: '30',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Mouse Gaming Razer DeathAdder',
-      codArticulo: 'A030',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '5',
-      costoUnidad: 12000,
-      costoPedido: 80,
-      tiempoRevision: '25',
-      esPredeterminado: false
-    }
-  ],
-  15: [
-    {
-      nombre: 'Procesador Intel Core i7-12700K',
-      codArticulo: 'A031',
-      tipoModelo: 'Lote fijo',
-      demoraEntrega: '10',
-      costoUnidad: 280000,
-      costoPedido: 500,
-      tiempoRevision: '60',
-      esPredeterminado: true
-    },
-    {
-      nombre: 'Procesador Intel Core i5-12600K',
-      codArticulo: 'A032',
-      tipoModelo: 'Intervalo fijo',
-      demoraEntrega: '8',
-      costoUnidad: 180000,
-      costoPedido: 300,
-      tiempoRevision: '45',
-      esPredeterminado: false
-    }
-  ]
-};
-
 const Proveedores = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [proveedoresFiltrados, setProveedoresFiltrados] = useState<Proveedor[]>([]);
-  const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState<Proveedor | null>(null);
-  const [busqueda, setBusqueda] = useState('');
-  const [mostrarModal, setMostrarModal] = useState(false);
+  const [articulos, setArticulos] = useState<Articulo[]>([]);
+  const [articuloEnEdicion, setArticuloEnEdicion] = useState<Articulo | null>(null);
+  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
   const [articuloAEliminar, setArticuloAEliminar] = useState<Articulo | null>(null);
   const [errorModal, setErrorModal] = useState<ErrorModal | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [mostrarModal, setMostrarModal] = useState(false);
   
   // Estados para edición
   const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
@@ -385,10 +55,55 @@ const Proveedores = () => {
   
   const navigate = useNavigate();
 
+  // Cargar proveedores al montar el componente
   useEffect(() => {
-    setProveedores(proveedoresMock);
-    setProveedoresFiltrados(proveedoresMock);
+    cargarProveedores();
   }, []);
+
+  const cargarProveedores = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const proveedoresData = await proveedorService.findAll();
+      setProveedores(proveedoresData);
+      setProveedoresFiltrados(proveedoresData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error cargando proveedores');
+      console.error('Error cargando proveedores:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar artículos cuando se selecciona un proveedor
+  useEffect(() => {
+    if (proveedorSeleccionado) {
+      cargarArticulosProveedor(proveedorSeleccionado.id);
+    } else {
+      setArticulos([]);
+    }
+  }, [proveedorSeleccionado]);
+
+  const cargarArticulosProveedor = async (proveedorId: number) => {
+    try {
+      const articulosData = await proveedorService.getArticulosPorProveedor(proveedorId);
+      // Convertir ArticuloProveedor a Articulo para mantener compatibilidad
+      const articulosConvertidos: Articulo[] = articulosData.map(ap => ({
+        nombre: ap.nombre,
+        codArticulo: ap.codigo,
+        tipoModelo: 'Lote fijo', // Valor por defecto
+        demoraEntrega: '5', // Valor por defecto
+        costoUnidad: ap.precio,
+        costoPedido: 100, // Valor por defecto
+        tiempoRevision: '30', // Valor por defecto
+        esPredeterminado: ap.esPredeterminado
+      }));
+      setArticulos(articulosConvertidos);
+    } catch (err) {
+      console.error('Error cargando artículos del proveedor:', err);
+      setArticulos([]);
+    }
+  };
 
   // Filtrar proveedores por búsqueda
   useEffect(() => {
@@ -402,14 +117,6 @@ const Proveedores = () => {
       setProveedoresFiltrados(proveedores);
     }
   }, [busqueda, proveedores]);
-
-  useEffect(() => {
-    if (proveedorSeleccionado) {
-      setArticulos(articulosMock[proveedorSeleccionado.id] || []);
-    } else {
-      setArticulos([]);
-    }
-  }, [proveedorSeleccionado]);
 
   const confirmarEliminacion = () => {
     if (!articuloAEliminar) return;
@@ -433,7 +140,7 @@ const Proveedores = () => {
       setArticulos(prev => prev.filter(a => a.codArticulo !== codArticulo));
     }
 
-    setMostrarModal(false);
+    setMostrarModalEliminacion(false);
   };
 
   const cerrarErrorModal = () => setErrorModal(null);
@@ -623,7 +330,7 @@ const Proveedores = () => {
                           Editar
                         </button>
                         <button 
-                          onClick={() => { setMostrarModal(true); setArticuloAEliminar(a); }}
+                          onClick={() => { setMostrarModalEliminacion(true); setArticuloAEliminar(a); }}
                           style={{ 
                             padding: '0.25rem 0.5rem',
                             backgroundColor: '#dc3545',
@@ -663,14 +370,14 @@ const Proveedores = () => {
           )}
 
           {/* Modal de eliminación */}
-          {mostrarModal && (
+          {mostrarModalEliminacion && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
               <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px', width: '90%' }}>
                 <h3 style={{ marginTop: 0 }}>Confirmar eliminación</h3>
                 <p>¿Desea eliminar el artículo "{articuloAEliminar?.nombre}" del proveedor: "{proveedorSeleccionado?.nombre}"?</p>
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                   <button 
-                    onClick={() => setMostrarModal(false)}
+                    onClick={() => setMostrarModalEliminacion(false)}
                     style={{ padding: '0.5rem 1rem', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                   >
                     Cancelar

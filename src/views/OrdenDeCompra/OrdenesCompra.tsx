@@ -5,7 +5,7 @@ import { MdShoppingCart, MdWarning, MdDelete, MdAdd } from 'react-icons/md';
 import Buscador from '../../components/Buscador';
 import FiltrosRapidos from '../../components/FiltrosRapidos';
 import TablaGenerica from '../../components/TablaGenerica';
-import ordenCompraService from '../../services/ordenCompra.service';
+import ordenCompraService from '../../services/ordenCompra.service.real';
 import type { OrdenCompra } from '../../services/ordenCompra.service';
 import '../../styles/OrdenDeCompra.css';
 
@@ -103,17 +103,13 @@ const OrdenesCompra = () => {
   };
 
   const handleAgregar = () => {
-    console.log('Navegando a alta de orden de compra');
     navigate('/ordenes-compra/alta');
   };
 
   const handleEditar = (orden: OrdenCompra) => {
-    console.log('Intentando editar orden:', orden);
     if (orden.estado === 'Pendiente') {
-      console.log('Navegando a editar orden:', orden.id);
       navigate(`/ordenes-compra/editar/${orden.id}`);
     } else {
-      console.log('Orden no editable, estado:', orden.estado);
       alert('Solo se pueden editar órdenes en estado Pendiente');
     }
   };

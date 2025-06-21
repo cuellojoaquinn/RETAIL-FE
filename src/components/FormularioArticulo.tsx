@@ -6,6 +6,7 @@ import BotonAgregar from "../components/BotonAgregar";
 import Notificacion from "../components/Notificacion";
 import { MdArticle, MdPerson } from "react-icons/md";
 import "../styles/ProveedorPredeterminado.css";
+import { apiGet, API_ENDPOINTS, handleApiError } from "../config/api";
 
 interface Articulo {
   codigo: string;
@@ -46,10 +47,10 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
   //   if (modo === "edicion" && codigoArticulo) {
   //     const obtenerArticulo = async () => {
   //       try {
-  //         const res = await fetch(
-  //           `http://localhost:3000/articulos/${codigoArticulo}`
-  //         );
-  //         if (!res.ok) throw new Error("No se pudo obtener el artículo");
+  //         const res = await apiGet(API_ENDPOINTS.ARTICULO_BY_ID(codigoArticulo));
+  //         if (!res.ok) {
+  //           await handleApiError(res);
+  //         }
   //         const data = await res.json();
   //         setForm(data);
   //       } catch (err) {

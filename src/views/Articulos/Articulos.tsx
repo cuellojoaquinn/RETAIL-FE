@@ -7,7 +7,7 @@ import "../../styles/Articulos.css";
 import TablaGenerica from "../../components/TablaGenerica";
 import { useNavigate } from "react-router-dom";
 import FiltrosRapidos from "../../components/FiltrosRapidos";
-import articuloService from "../../services/articulo.service";
+import articuloService from "../../services/articulo.service.real";
 import type { Articulo } from "../../services/articulo.service";
 
 interface OrdenCompra {
@@ -115,7 +115,6 @@ const Articulos = () => {
   const articulosFiltrados = articulos.filter((articulo) => {
     // Si el filtroEstado es un filtro rápido, no aplicar filtros adicionales
     if (filtroEstado === "A reponer" || filtroEstado === "Faltantes") {
-      console.log('Filtro rápido activo, mostrando todos los artículos del servicio');
       return true; // Mostrar todos los artículos que ya vienen filtrados del servicio
     }
     
@@ -125,7 +124,6 @@ const Articulos = () => {
 
   // Manejar filtros rápidos
   const handleFiltroRapido = async (filtro: string) => {
-    console.log('Filtro seleccionado:', filtro);
     setFiltroEstado(filtro);
     
     try {
@@ -133,19 +131,14 @@ const Articulos = () => {
       setError(null);
       
       if (filtro === "Todos") {
-        console.log('Cargando todos los artículos...');
         await cargarArticulos();
       } else if (filtro === "A reponer") {
-        console.log('Cargando artículos a reponer...');
         const articulosAReponer = await articuloService.getArticulosAReponer();
-        console.log('Artículos a reponer:', articulosAReponer);
         setArticulos(articulosAReponer);
         setTotalElementos(articulosAReponer.length);
         setTotalPaginas(1);
       } else if (filtro === "Faltantes") {
-        console.log('Cargando artículos faltantes...');
         const articulosFaltantes = await articuloService.getArticulosFaltantes();
-        console.log('Artículos faltantes:', articulosFaltantes);
         setArticulos(articulosFaltantes);
         setTotalElementos(articulosFaltantes.length);
         setTotalPaginas(1);
@@ -153,7 +146,6 @@ const Articulos = () => {
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando artículos');
-      console.error('Error cargando artículos:', err);
     } finally {
       setLoading(false);
     }
@@ -262,11 +254,18 @@ const Articulos = () => {
     cargarArticulosAReponer();
   }, []);
 
-  // Debug: Loggear datos que se muestran en la tabla
-  useEffect(() => {
-    console.log('Datos a mostrar en tabla:', articulosFiltrados);
-    console.log('Filtro estado actual:', filtroEstado);
-  }, [articulosFiltrados, filtroEstado]);
+  // Preparar datos para la tabla
+  const datosTabla = articulosFiltrados.map((articulo) => ({
+    id: articulo.id,
+    codigo: articulo.codigo,
+    nombre: articulo.nombre,
+    estado: articulo.estado,
+    proveedor: articulo.proveedor,
+    precio: articulo.precio,
+    inventario: articulo.inventario,
+    stockSeguridad: articulo.stockSeguridad,
+    tipoModelo: articulo.tipoModelo,
+  }));
 
   if (loading && articulos.length === 0) {
     return (

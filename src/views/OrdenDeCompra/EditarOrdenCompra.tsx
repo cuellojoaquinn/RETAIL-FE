@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import CampoTexto from '../../components/CampoText';
 import { MdArrowBack, MdShoppingCart, MdWarning, MdCheckCircle, MdCancel, MdSend, MdRefresh, MdSchedule, MdEdit, MdPerson, MdInventory, MdDescription } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
-import ordenCompraService from '../../services/ordenCompra.service';
+import ordenCompraService from '../../services/ordenCompra.service.real';
 import type { OrdenCompra } from '../../services/ordenCompra.service';
 
 interface Proveedor {
@@ -188,54 +188,54 @@ const EditarOrdenCompra = () => {
   ];
 
   useEffect(() => {
-    if (id) {
-      cargarOrdenCompra(Number(id));
-      cargarProveedores();
-    }
+    const cargarOrden = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const orden = await ordenCompraService.findById(Number(id));
+        
+        if (!orden) {
+          setError('Orden de compra no encontrada');
+          return;
+        }
+
+        if (orden.estado !== 'Pendiente') {
+          setError('Solo se pueden editar órdenes en estado Pendiente');
+          return;
+        }
+
+        setOrdenCompra(orden);
+        setFormulario({
+          proveedorId: orden.proveedor.id,
+          articuloId: orden.articulo.id,
+          cantidad: orden.cantidad,
+          precioUnitario: orden.precioUnitario,
+          tiempoEntrega: orden.tiempoEntrega || 0,
+          puntoPedido: orden.puntoPedido || 0,
+          costoOrden: orden.costoOrden || 0,
+          observaciones: orden.observaciones || ''
+        });
+
+        // Cargar artículos del proveedor
+        const articulosProveedor = articulosMock.filter(a => a.proveedorId === orden.proveedor.id);
+        setArticulos(articulosProveedor);
+        setArticulosFiltrados(articulosProveedor);
+
+        // Seleccionar el artículo actual
+        const articuloActual = articulosProveedor.find(a => a.id === orden.articulo.id);
+        if (articuloActual) {
+          setArticuloSeleccionado(articuloActual);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error cargando la orden de compra');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarOrden();
   }, [id]);
-
-  const cargarOrdenCompra = async (ordenId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Cargando orden de compra con ID:', ordenId);
-      
-      const orden = await ordenCompraService.findById(ordenId);
-      
-      console.log('Orden encontrada:', orden);
-      
-      if (orden.estado !== 'Pendiente') {
-        console.log('Orden no editable, estado:', orden.estado);
-        setError('Solo se pueden editar órdenes en estado Pendiente');
-        return;
-      }
-
-      console.log('Orden válida para editar');
-      setOrdenCompra(orden);
-      setFormulario({
-        cantidad: orden.cantidad,
-        precioUnitario: orden.precioUnitario,
-        observaciones: orden.observaciones
-      });
-
-      // Cargar artículos del proveedor
-      const articulosProveedor = articulosMock.filter(a => a.proveedorId === orden.proveedor.id);
-      setArticulos(articulosProveedor);
-      setArticulosFiltrados(articulosProveedor);
-
-      // Seleccionar el artículo actual
-      const articuloActual = articulosProveedor.find(a => a.id === orden.articulo.id);
-      if (articuloActual) {
-        setArticuloSeleccionado(articuloActual);
-      }
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando la orden de compra');
-      console.error('Error cargando orden de compra:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cargarProveedores = async () => {
     try {

@@ -13,7 +13,7 @@ import {
   MdDescription
 } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
-import ordenCompraService from '../../services/ordenCompra.service';
+import ordenCompraService from '../../services/ordenCompra.service.real';
 import type { OrdenCompra } from '../../services/ordenCompra.service';
 
 interface Proveedor {
@@ -214,7 +214,6 @@ const AltaOrdenCompra = () => {
       setProveedores([...proveedoresMock]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando proveedores');
-      console.error('Error cargando proveedores:', err);
     } finally {
       setLoading(false);
     }
@@ -230,7 +229,6 @@ const AltaOrdenCompra = () => {
       setArticulosFiltrados(articulosProveedor);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando artículos');
-      console.error('Error cargando artículos:', err);
     } finally {
       setLoading(false);
     }
@@ -290,60 +288,58 @@ const AltaOrdenCompra = () => {
     return costoPedido + costoOrden;
   };
 
-  const esFormularioValido = () => {
-    const valido = formulario.proveedorId && 
-           formulario.articuloId && 
-           formulario.cantidad > 0 && 
-           formulario.precioUnitario > 0;
-    console.log('Validación del formulario:', {
-      proveedorId: formulario.proveedorId,
-      articuloId: formulario.articuloId,
-      cantidad: formulario.cantidad,
-      precioUnitario: formulario.precioUnitario,
-      valido
-    });
-    return valido;
+  const validarFormulario = (): boolean => {
+    const errores: string[] = [];
+
+    if (!formulario.proveedorId) {
+      errores.push('Debe seleccionar un proveedor');
+    }
+
+    if (!formulario.articuloId) {
+      errores.push('Debe seleccionar un artículo');
+    }
+
+    if (formulario.cantidad <= 0) {
+      errores.push('La cantidad debe ser mayor a 0');
+    }
+
+    if (formulario.precioUnitario <= 0) {
+      errores.push('El precio unitario debe ser mayor a 0');
+    }
+
+    if (errores.length > 0) {
+      setError(errores.join(', '));
+      return false;
+    }
+
+    return true;
   };
 
   const handleGuardar = async () => {
-    console.log('Intentando guardar orden de compra');
-    if (!esFormularioValido()) {
-      console.log('Formulario no válido, no se puede guardar');
-      return;
-    }
-
-    if (!articuloSeleccionado) {
-      setError('Debe seleccionar un artículo');
+    if (!validarFormulario()) {
       return;
     }
 
     try {
       setGuardando(true);
-      console.log('Guardando orden de compra...');
-      
-      // Preparar datos para el servicio
-      const nuevaOrden = {
+      setError(null);
+
+      const nuevaOrden = await ordenCompraService.saveOrdenCompra({
         proveedor: proveedores.find(p => p.id === formulario.proveedorId)!,
-        articulo: articuloSeleccionado,
+        articulo: articulos.find(a => a.id === formulario.articuloId)!,
         cantidad: formulario.cantidad,
         precioUnitario: formulario.precioUnitario,
-        total: calcularTotal(),
-        estado: 'Pendiente' as const,
-        tiempoEntrega: 7, // Valor por defecto
-        puntoPedido: articuloSeleccionado.puntoPedido,
-        costoOrden: 5000,
+        total: formulario.cantidad * formulario.precioUnitario,
+        estado: 'Pendiente',
+        tiempoEntrega: formulario.tiempoEntrega,
+        puntoPedido: formulario.puntoPedido,
+        costoOrden: formulario.costoOrden,
         observaciones: formulario.observaciones
-      };
-      
-      await ordenCompraService.saveOrdenCompra(nuevaOrden);
-      
-      console.log('Orden de compra creada exitosamente');
-      alert('Orden de compra creada exitosamente');
+      });
+
       navigate('/ordenes-compra');
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error creando la orden de compra');
-      console.error('Error creando orden de compra:', err);
     } finally {
       setGuardando(false);
     }
@@ -569,7 +565,7 @@ const AltaOrdenCompra = () => {
           </button>
           <button 
             onClick={handleGuardar}
-            disabled={!esFormularioValido() || guardando}
+            disabled={!validarFormulario() || guardando}
             className="btn btn-success"
           >
             {guardando ? 'Creando orden...' : 'Crear orden de compra'}

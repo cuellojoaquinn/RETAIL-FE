@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MdArrowBack, MdWarning, MdDelete, MdShoppingCart, MdPerson, MdInventory } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
-import ordenCompraService from '../../services/ordenCompra.service';
+import ordenCompraService from '../../services/ordenCompra.service.real';
 import type { OrdenCompra } from '../../services/ordenCompra.service';
 
 const EliminarOrdenCompra = () => {
@@ -16,61 +16,43 @@ const EliminarOrdenCompra = () => {
   const [mostrarModalConfirmacion, setMostrarModalConfirmacion] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      cargarOrdenCompra(Number(id));
-    }
+    const cargarOrden = async () => {
+      try {
+        setLoading(true);
+        const orden = await ordenCompraService.findById(Number(id));
+        
+        if (!orden) {
+          setError('Orden de compra no encontrada');
+          return;
+        }
+
+        if (orden.estado !== 'Pendiente') {
+          setError('Solo se pueden eliminar órdenes en estado Pendiente');
+          return;
+        }
+
+        setOrdenCompra(orden);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error cargando la orden de compra');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarOrden();
   }, [id]);
 
-  const cargarOrdenCompra = async (ordenId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Cargando orden de compra con ID:', ordenId);
-      
-      const orden = await ordenCompraService.findById(ordenId);
-      
-      console.log('Orden encontrada:', orden);
-      
-      if (orden.estado !== 'Pendiente') {
-        console.log('Orden no eliminable, estado:', orden.estado);
-        setError('Solo se pueden eliminar órdenes en estado Pendiente');
-        return;
-      }
-
-      console.log('Orden válida para eliminar');
-      setOrdenCompra(orden);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando la orden de compra');
-      console.error('Error cargando orden de compra:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEliminar = () => {
-    setMostrarModalConfirmacion(true);
-  };
-
-  const confirmarEliminacion = async () => {
+  const handleEliminar = async () => {
     if (!ordenCompra) return;
 
     try {
       setEliminando(true);
-      console.log('Eliminando orden de compra:', ordenCompra.id);
-      
       await ordenCompraService.deleteById(ordenCompra.id);
-      
-      console.log('Orden de compra eliminada exitosamente');
-      alert('Orden de compra eliminada exitosamente');
       navigate('/ordenes-compra');
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error eliminando la orden de compra');
-      console.error('Error eliminando orden de compra:', err);
     } finally {
       setEliminando(false);
-      setMostrarModalConfirmacion(false);
     }
   };
 
@@ -367,7 +349,7 @@ const EliminarOrdenCompra = () => {
                 Cancelar
               </button>
               <button 
-                onClick={confirmarEliminacion}
+                onClick={handleEliminar}
                 disabled={eliminando}
                 className="btn btn-danger"
               >
