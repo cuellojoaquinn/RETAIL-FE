@@ -1,191 +1,336 @@
-// 📁 src/views/OrdenesCompra/OrdenesCompra.tsx
-import React, { useEffect, useState } from 'react';
+// 📁 src/views/OrdenDeCompra/OrdenesCompra.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TablaGenerica from '../../components/TablaGenerica';
-import BotonAgregar from '../../components/BotonAgregar';
+import { MdShoppingCart, MdWarning, MdDelete, MdAdd } from 'react-icons/md';
 import Buscador from '../../components/Buscador';
-
-interface OrdenCompra {
-  id: string;
-  estado: string;
-  proveedor: string;
-  articulo: string;
-  fecha: string;
-  monto: number;
-}
-
-const ordenesMock: OrdenCompra[] = [
-  {
-    id: 'OC001',
-    estado: 'Pendiente',
-    proveedor: 'Proveedor A',
-    articulo: 'Artículo A1',
-    fecha: '20/06/2025',
-    monto: 300
-  },
-  {
-    id: 'OC002',
-    estado: 'Enviada',
-    proveedor: 'Proveedor B',
-    articulo: 'Artículo B1',
-    fecha: '18/06/2025',
-    monto: 200
-  },
-  {
-    id: 'OC003',
-    estado: 'Pendiente',
-    proveedor: 'Proveedor C',
-    articulo: 'Artículo C1',
-    fecha: '22/06/2025',
-    monto: 450
-  }
-];
+import FiltrosRapidos from '../../components/FiltrosRapidos';
+import TablaGenerica from '../../components/TablaGenerica';
+import ordenCompraService from '../../services/ordenCompra.service';
+import type { OrdenCompra } from '../../services/ordenCompra.service';
+import '../../styles/OrdenDeCompra.css';
 
 const OrdenesCompra = () => {
-  const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
-  const [ordenesOriginales, setOrdenesOriginales] = useState<OrdenCompra[]>([]);
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
+  const [ordenesCompra, setOrdenesCompra] = useState<OrdenCompra[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
+  const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
+  const [ordenAEliminar, setOrdenAEliminar] = useState<OrdenCompra | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [estadisticas, setEstadisticas] = useState({
+    total: 0,
+    pendientes: 0,
+    enviadas: 0,
+    finalizadas: 0,
+    canceladas: 0,
+    totalValor: 0
+  });
+
   const navigate = useNavigate();
 
+  // Cargar órdenes de compra al montar el componente
   useEffect(() => {
-    setOrdenes(ordenesMock);
-    setOrdenesOriginales(ordenesMock);
+    cargarOrdenesCompra();
+    cargarEstadisticas();
   }, []);
 
-  // Filtrar órdenes por búsqueda y estado
-  useEffect(() => {
-    let ordenesFiltradas = ordenesOriginales;
-
-    // Filtrar por búsqueda (ID, proveedor o artículo)
-    if (busqueda.trim()) {
-      const terminoBusqueda = busqueda.toLowerCase();
-      ordenesFiltradas = ordenesFiltradas.filter(orden => 
-        orden.id.toLowerCase().includes(terminoBusqueda) ||
-        orden.proveedor.toLowerCase().includes(terminoBusqueda) ||
-        orden.articulo.toLowerCase().includes(terminoBusqueda)
-      );
+  const cargarOrdenesCompra = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const ordenes = await ordenCompraService.findAll();
+      setOrdenesCompra(ordenes);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error cargando órdenes de compra');
+      console.error('Error cargando órdenes de compra:', err);
+    } finally {
+      setLoading(false);
     }
-
-    // Filtrar por estado
-    if (filtroEstado) {
-      ordenesFiltradas = ordenesFiltradas.filter(orden => orden.estado === filtroEstado);
-    }
-
-    setOrdenes(ordenesFiltradas);
-  }, [busqueda, filtroEstado, ordenesOriginales]);
-
-  const limpiarFiltros = () => {
-    setBusqueda('');
-    setFiltroEstado('');
   };
 
-  return (
-    <div style={{ padding: '2rem', minHeight: '100vh' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Órdenes de compra</h1>
-        <BotonAgregar texto="Crear orden de compra" onClick={() => navigate('/ordenes/alta')} />
-      </div>
+  const cargarEstadisticas = async () => {
+    try {
+      const stats = await ordenCompraService.getEstadisticas();
+      setEstadisticas(stats);
+    } catch (err) {
+      console.error('Error cargando estadísticas:', err);
+    }
+  };
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '300px' }}>
-          <Buscador
-            value={busqueda}
-            onChange={setBusqueda}
-            placeholder="Buscar por ID, proveedor o artículo..."
-          />
-        </div>
-        <select 
-          onChange={(e) => setFiltroEstado(e.target.value)} 
-          value={filtroEstado}
-          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minWidth: '150px' }}
+  // Buscar órdenes de compra
+  const handleBuscar = async (termino: string) => {
+    setBusqueda(termino);
+    
+    if (!termino.trim()) {
+      cargarOrdenesCompra();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const resultados = await ordenCompraService.searchOrdenes(termino);
+      setOrdenesCompra(resultados);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error en la búsqueda');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manejar filtros rápidos
+  const handleFiltroRapido = async (filtro: string) => {
+    setFiltroEstado(filtro);
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (filtro === "Todos") {
+        await cargarOrdenesCompra();
+      } else {
+        const ordenes = await ordenCompraService.findByEstado(filtro as OrdenCompra['estado']);
+        setOrdenesCompra(ordenes);
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error aplicando filtro');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAgregar = () => {
+    console.log('Navegando a alta de orden de compra');
+    navigate('/ordenes-compra/alta');
+  };
+
+  const handleEditar = (orden: OrdenCompra) => {
+    console.log('Intentando editar orden:', orden);
+    if (orden.estado === 'Pendiente') {
+      console.log('Navegando a editar orden:', orden.id);
+      navigate(`/ordenes-compra/editar/${orden.id}`);
+    } else {
+      console.log('Orden no editable, estado:', orden.estado);
+      alert('Solo se pueden editar órdenes en estado Pendiente');
+    }
+  };
+
+  const handleEliminar = (orden: OrdenCompra) => {
+    if (orden.estado === 'Pendiente') {
+      setOrdenAEliminar(orden);
+      setMostrarModalEliminacion(true);
+    } else {
+      alert('Solo se pueden eliminar órdenes en estado Pendiente');
+    }
+  };
+
+  const confirmarEliminacion = async () => {
+    if (!ordenAEliminar) return;
+
+    try {
+      setEliminando(true);
+      
+      await ordenCompraService.deleteById(ordenAEliminar.id);
+      
+      // Recargar datos
+      await cargarOrdenesCompra();
+      await cargarEstadisticas();
+      
+      setMostrarModalEliminacion(false);
+      setOrdenAEliminar(null);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar la orden de compra');
+      console.error('Error eliminando orden de compra:', err);
+    } finally {
+      setEliminando(false);
+    }
+  };
+
+  const cerrarModalEliminacion = () => {
+    setMostrarModalEliminacion(false);
+    setOrdenAEliminar(null);
+  };
+
+  if (loading && ordenesCompra.length === 0) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner" />
+        <p>Cargando órdenes de compra...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="loading-container">
+        <MdWarning style={{ fontSize: '3rem', marginBottom: '1rem', color: '#dc3545' }} />
+        <h3>Error</h3>
+        <p>{error}</p>
+        <button 
+          onClick={cargarOrdenesCompra}
+          className="btn btn-primary"
+          style={{ marginTop: '1rem' }}
         >
-          <option value="">Todos los estados</option>
-          <option value="Pendiente">Pendiente</option>
-          <option value="Enviada">Enviada</option>
-          <option value="Cancelado">Cancelado</option>
-          <option value="Finalizado">Finalizado</option>
-        </select>
-        {(busqueda || filtroEstado) && (
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ordenes-compra-container">
+      {/* Header */}
+      <div className="ordenes-compra-header">
+        <h1 className="ordenes-compra-title">Órdenes de Compra</h1>
+        <div className="ordenes-compra-actions">
           <button 
-            onClick={limpiarFiltros}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              backgroundColor: '#6c757d', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px', 
-              cursor: 'pointer' 
-            }}
+            onClick={handleAgregar}
+            className="btn btn-primary"
           >
-            Limpiar filtros
+            <MdAdd />
+            Agregar orden de compra
           </button>
-        )}
+        </div>
       </div>
 
-      {ordenes.length === 0 ? (
+      {/* Estadísticas */}
+      <div className="estadisticas-container">
+        <div className="estadistica-card total">
+          <div className="estadistica-icon">
+            <MdShoppingCart />
+          </div>
+          <div className="estadistica-label">Total</div>
+          <div className="estadistica-value">{estadisticas.total}</div>
+        </div>
+        <div className="estadistica-card pendientes">
+          <div className="estadistica-icon">
+            <MdShoppingCart />
+          </div>
+          <div className="estadistica-label">Pendientes</div>
+          <div className="estadistica-value">{estadisticas.pendientes}</div>
+        </div>
+        <div className="estadistica-card enviadas">
+          <div className="estadistica-icon">
+            <MdShoppingCart />
+          </div>
+          <div className="estadistica-label">Enviadas</div>
+          <div className="estadistica-value">{estadisticas.enviadas}</div>
+        </div>
+        <div className="estadistica-card finalizadas">
+          <div className="estadistica-icon">
+            <MdShoppingCart />
+          </div>
+          <div className="estadistica-label">Finalizadas</div>
+          <div className="estadistica-value">{estadisticas.finalizadas}</div>
+        </div>
+        <div className="estadistica-card canceladas">
+          <div className="estadistica-icon">
+            <MdShoppingCart />
+          </div>
+          <div className="estadistica-label">Canceladas</div>
+          <div className="estadistica-value">{estadisticas.canceladas}</div>
+        </div>
+      </div>
+
+      {/* Filtros y búsqueda */}
+      <div className="filtros-container">
+        <Buscador 
+          value={busqueda} 
+          onChange={handleBuscar} 
+          placeholder="Buscar por número, proveedor o artículo..." 
+        />
+        <FiltrosRapidos
+          activo={filtroEstado}
+          onSeleccionar={handleFiltroRapido}
+          opciones={["Todos", "Pendiente", "Enviada", "Finalizada", "Cancelada"]}
+        />
+      </div>
+
+      {ordenesCompra.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <p>
-            {busqueda || filtroEstado 
-              ? 'No se encontraron órdenes con los filtros aplicados' 
-              : 'No hay órdenes de compra registradas'
-            }
-          </p>
+          <MdShoppingCart style={{ fontSize: '3rem', color: '#6c757d', marginBottom: '1rem' }} />
+          <p>No se encontraron órdenes de compra con los filtros aplicados</p>
         </div>
       ) : (
-        <>
-          <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#666' }}>
-            Mostrando {ordenes.length} de {ordenesOriginales.length} órdenes
+        <TablaGenerica
+          datos={ordenesCompra}
+          columnas={[
+            { 
+              header: "Número", 
+              render: (o: OrdenCompra) => <strong>{o.numero}</strong> 
+            },
+            { 
+              header: "Fecha", 
+              render: (o: OrdenCompra) => new Date(o.fechaCreacion).toLocaleDateString('es-ES') 
+            },
+            { 
+              header: "Proveedor", 
+              render: (o: OrdenCompra) => o.proveedor.nombre 
+            },
+            { 
+              header: "Artículo", 
+              render: (o: OrdenCompra) => o.articulo.nombre 
+            },
+            { 
+              header: "Cantidad", 
+              render: (o: OrdenCompra) => o.cantidad 
+            },
+            { 
+              header: "Total", 
+              render: (o: OrdenCompra) => (
+                <strong style={{ color: '#28a745' }}>
+                  ${o.total.toLocaleString()}
+                </strong>
+              ) 
+            },
+            { 
+              header: "Estado", 
+              render: (o: OrdenCompra) => (
+                <span className={`estado-badge estado-${o.estado.toLowerCase()}`}>
+                  {o.estado}
+                </span>
+              ) 
+            }
+          ]}
+          onEditar={(o) => handleEditar(o)}
+          onEliminar={(o) => handleEliminar(o)}
+        />
+      )}
+
+      {/* Modal de eliminación */}
+      {mostrarModalEliminacion && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3 className="modal-title">Confirmar eliminación</h3>
+            </div>
+            <p style={{ marginBottom: '1.5rem' }}>
+              ¿Estás seguro de que deseas eliminar la orden de compra? Esta acción no se puede deshacer. 
+              La orden de compra <strong>"{ordenAEliminar?.numero}"</strong> será eliminada permanentemente.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={cerrarModalEliminacion}
+                disabled={eliminando}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmarEliminacion}
+                disabled={eliminando}
+                className="btn btn-danger"
+              >
+                <MdDelete />
+                {eliminando ? 'Eliminando...' : 'Aceptar'}
+              </button>
+            </div>
           </div>
-          <TablaGenerica
-            datos={ordenes.map((o) => ({
-              ...o,
-              acciones: (
-                <>
-                  <button 
-                    disabled={o.estado !== 'Pendiente'} 
-                    onClick={() => navigate(`/ordenes/editar/${o.id}`)}
-                    style={{ marginRight: '0.5rem' }}
-                  >
-                    Editar
-                  </button>
-                  <button 
-                    disabled={o.estado !== 'Pendiente'} 
-                    onClick={() => navigate(`/ordenes/eliminar/${o.id}`)}
-                  >
-                    Eliminar
-                  </button>
-                </>
-              )
-            }))}
-            columnas={[
-              { header: "Referencia", render: (o: any) => <strong>{o.id}</strong> },
-              { 
-                header: "Estado", 
-                render: (o: any) => (
-                  <span style={{ 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '4px', 
-                    fontSize: '0.8rem',
-                    backgroundColor: o.estado === 'Pendiente' ? '#fff3cd' : 
-                                   o.estado === 'Enviada' ? '#d1ecf1' : 
-                                   o.estado === 'Finalizado' ? '#d4edda' : '#f8d7da',
-                    color: o.estado === 'Pendiente' ? '#856404' : 
-                          o.estado === 'Enviada' ? '#0c5460' : 
-                          o.estado === 'Finalizado' ? '#155724' : '#721c24'
-                  }}>
-                    {o.estado}
-                  </span>
-                )
-              },
-              { header: "Proveedor", render: (o: any) => o.proveedor },
-              { header: "Nombre Artículo", render: (o: any) => o.articulo },
-              { header: "Fecha creación", render: (o: any) => o.fecha },
-              { header: "Monto", render: (o: any) => `$${o.monto.toLocaleString()}` },
-              { header: "Acciones", render: (o: any) => o.acciones }
-            ]}
-          />
-        </>
+        </div>
       )}
     </div>
   );

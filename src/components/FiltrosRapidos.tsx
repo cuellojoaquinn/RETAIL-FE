@@ -3,11 +3,10 @@ import "../styles/FiltrosRapidos.css";
 interface Props {
   activo: string;
   onSeleccionar: (valor: string) => void;
+  opciones?: string[];
 }
 
-const opciones = ["Todos", "A reponer", "Faltantes"];
-
-const FiltrosRapidos = ({ activo, onSeleccionar }: Props) => {
+const FiltrosRapidos = ({ activo, onSeleccionar, opciones = ["Todos", "A reponer", "Faltantes"] }: Props) => {
   return (
     <div className='filtros-rapidos'>
       {opciones.map((op) => (

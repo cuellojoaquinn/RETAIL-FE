@@ -41,10 +41,10 @@ function App() {
             <Route path='/proveedores/editar/:id' element={<EditarProveedor />} />
             
             {/* Rutas de Órdenes de Compra */}
-            <Route path='/ordenes' element={<OrdenesCompra />} />
-            <Route path='/ordenes/alta' element={<AltaOrdenCompra />} />
-            <Route path='/ordenes/editar/:id' element={<EditarOrdenCompra />} />
-            <Route path='/ordenes/eliminar/:id' element={<EliminarOrdenCompra />} />
+            <Route path='/ordenes-compra' element={<OrdenesCompra />} />
+            <Route path='/ordenes-compra/alta' element={<AltaOrdenCompra />} />
+            <Route path='/ordenes-compra/editar/:id' element={<EditarOrdenCompra />} />
+            <Route path='/ordenes-compra/eliminar/:id' element={<EliminarOrdenCompra />} />
             
             {/* Rutas de Ventas */}
             <Route path='/ventas' element={<Ventas />} />

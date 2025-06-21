@@ -1,0 +1,462 @@
+/* Estilos para componentes de Orden de Compra */
+
+.ordenes-compra-container {
+  padding: 2rem;
+  background-color: var(--color-background);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.ordenes-compra-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+
+.ordenes-compra-title {
+  color: var(--color-texto);
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.ordenes-compra-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Estadísticas */
+.estadisticas-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.estadistica-card {
+  background-color: var(--color-acento-white);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid var(--color-secundario);
+}
+
+.estadistica-card.total {
+  background: linear-gradient(135deg, var(--color-primario), var(--color-acento-blue));
+  color: var(--color-acento-white);
+}
+
+.estadistica-card.pendientes {
+  background: linear-gradient(135deg, var(--color-acento-yellow), #fbbf24);
+  color: var(--color-texto);
+}
+
+.estadistica-card.enviadas {
+  background: linear-gradient(135deg, var(--color-acento-blue), #60a5fa);
+  color: var(--color-acento-white);
+}
+
+.estadistica-card.finalizadas {
+  background: linear-gradient(135deg, var(--color-acento-green), #34d399);
+  color: var(--color-acento-white);
+}
+
+.estadistica-card.canceladas {
+  background: linear-gradient(135deg, var(--color-acento-red), #f87171);
+  color: var(--color-acento-white);
+}
+
+.estadistica-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.estadistica-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+.estadistica-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Filtros y búsqueda */
+.filtros-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Formularios */
+.formulario-container {
+  max-width: 800px;
+  background-color: var(--color-acento-white);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-secundario);
+}
+
+.formulario-seccion {
+  margin-bottom: 2rem;
+}
+
+.formulario-seccion h3 {
+  color: var(--color-texto);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formulario-campo {
+  margin-bottom: 1rem;
+}
+
+.formulario-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--color-texto);
+  font-size: 0.875rem;
+}
+
+.formulario-input,
+.formulario-select,
+.formulario-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-secundario);
+  font-size: 1rem;
+  background-color: #f6f9ff;
+  color: var(--color-texto);
+  transition: all 0.2s ease;
+}
+
+.formulario-input:focus,
+.formulario-select:focus,
+.formulario-textarea:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 2px rgba(96, 75, 232, 0.2);
+}
+
+.formulario-input:disabled,
+.formulario-select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.formulario-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Botones */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--color-primario);
+  color: var(--color-acento-white);
+}
+
+.btn-primary:hover {
+  background-color: #4c3bc7;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: var(--color-acento-white);
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-success {
+  background-color: var(--color-acento-green);
+  color: var(--color-acento-white);
+}
+
+.btn-success:hover {
+  background-color: #2dd4bf;
+}
+
+.btn-danger {
+  background-color: var(--color-acento-red);
+  color: var(--color-acento-white);
+}
+
+.btn-danger:hover {
+  background-color: #f87171;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Estados de orden */
+.estado-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.estado-pendiente {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.estado-enviada {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.estado-finalizada {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.estado-cancelada {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Indicador de progreso */
+.progreso-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid var(--color-secundario);
+}
+
+.progreso-paso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.progreso-circulo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.progreso-circulo.activo {
+  background-color: var(--color-primario);
+  color: var(--color-acento-white);
+  box-shadow: 0 4px 12px rgba(96, 75, 232, 0.3);
+}
+
+.progreso-circulo.inactivo {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.progreso-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-texto);
+  text-align: center;
+}
+
+.progreso-label.activo {
+  color: var(--color-primario);
+}
+
+.progreso-label.inactivo {
+  color: #6c757d;
+}
+
+.progreso-linea {
+  flex: 1;
+  height: 2px;
+  margin: 0 1rem;
+  transition: all 0.3s ease;
+}
+
+.progreso-linea.activo {
+  background-color: var(--color-primario);
+}
+
+.progreso-linea.inactivo {
+  background-color: #e9ecef;
+}
+
+/* Modales */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--color-acento-white);
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-title {
+  color: var(--color-texto);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: #f8f9fa;
+  color: var(--color-texto);
+}
+
+/* Alertas y notificaciones */
+.alerta {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid;
+}
+
+.alerta-warning {
+  background-color: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+}
+
+.alerta-success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.alerta-error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+/* Loading */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 2rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--color-primario);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ordenes-compra-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .ordenes-compra-actions {
+    justify-content: center;
+  }
+  
+  .estadisticas-container {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .formulario-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .progreso-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .progreso-linea {
+    display: none;
+  }
+} 
