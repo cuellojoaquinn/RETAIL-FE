@@ -116,8 +116,21 @@ const Articulos = () => {
   const handleFiltroRapido = async (filtro: string) => {
     setFiltroEstado(filtro);
     
-    if (!filtro) {
-      setArticulosFiltrados(articulos);
+    if (!filtro || filtro === 'Todos') {
+      // Cargar todos los artículos desde el backend
+      try {
+        setLoading(true);
+        const response = await articuloService.findAll(pagina, tamañoPagina);
+        setArticulos(response.content);
+        setArticulosFiltrados(response.content);
+        setTotalElementos(response.totalElements);
+        setTotalPaginas(response.totalPages);
+      } catch (err) {
+        console.error('Error cargando todos los artículos:', err);
+        setError('Error cargando artículos');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
