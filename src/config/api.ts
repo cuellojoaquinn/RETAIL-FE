@@ -70,8 +70,11 @@ export const API_ENDPOINTS = {
   // Artículos
   ARTICULOS: 'articulos',
   ARTICULO_BY_ID: (id: string | number) => `articulos/${id}`,
+  ARTICULO_BAJA_BY_ID: (id: string | number) => `articulos/baja/${id}`,
+  ARTICULOS_SEARCH: (query: string) => `articulos/search?q=${encodeURIComponent(query)}`,
   ARTICULOS_A_REPONER: 'articulos/a-reponer',
   ARTICULOS_FALTANTES: 'articulos/faltantes',
+  ARTICULOS_A_ASIGNAR: 'articulos/a-asignar',
   
   // Órdenes de compra
   ORDENES_COMPRA: 'orden-compra',

@@ -1,87 +1,40 @@
-import { useState } from "react";
-import { MdArticle } from "react-icons/md";
-import { FaSave } from "react-icons/fa";
-import CampoTexto from "../../components/CampoText";
-import CampoTextoArea from "../../components/CampoTextoArea";
-import FormularioSeccion from "../../components/FormularioSeccion";
-import "../../styles/AltaArticulo.css";
 import { useNavigate } from "react-router-dom";
-import BotonAgregar from "../../components/BotonAgregar";
+import { useState } from "react";
+import FormularioArticulo from "../../components/FormularioArticulo";
+import articuloServiceReal, { type CrearArticuloDTO } from "../../services/articulo.service.real";
 import Notificacion from "../../components/Notificacion";
-import articuloServiceReal, { type ArticuloDTO } from "../../services/articulo.service.real";
+import "../../styles/AltaArticulo.css";
 
 const AltaArticulo = () => {
   const navigate = useNavigate();
-  const [errores, setErrores] = useState<{ [key: string]: boolean }>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    codigo: "",
-    nombre: "",
-    descripcion: "",
-    costoAlmacenamiento: "",
-    demanda: "",
-    costoCompra: "",
-    costoVenta: "",
-    stockActual: "",
-  });
-  const [mensajeError, setMensajeError] = useState("");
-  console.log("form", form);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleGuardar = async () => {
-    const camposObligatorios: { [key: string]: string } = {
-      codigo: "Código",
-      nombre: "Nombre",
-      costoAlmacenamiento: "Costo de almacenamiento",
-      demanda: "Demanda artículo",
-      costoCompra: "Costo de compra",
-      costoVenta: "Costo de venta",
-      stockActual: "Stock actual",
-    };
-  
-    const nuevosErrores: { [key: string]: boolean } = {};
-    const camposFaltantes: string[] = [];
-  
-    Object.entries(camposObligatorios).forEach(([campo, label]) => {
-      if (!form[campo as keyof typeof form]) {
-        nuevosErrores[campo] = true;
-        camposFaltantes.push(label);
-      }
-    });
-  
-    if (camposFaltantes.length > 0) {
-      setErrores(nuevosErrores);
-      setMensajeError(`Faltan completar: ${camposFaltantes.join(", ")}`);
-      return;
-    }
-  
-    setErrores({});
-    setMensajeError("");
-  
-    const articuloDTO: ArticuloDTO = {
-      codigo: parseInt(form.codigo),
-      nombre: form.nombre,
-      descripcion: form.descripcion,
-      costoAlmacenamiento: parseFloat(form.costoAlmacenamiento),
-      demanda: parseFloat(form.demanda),
-      costoCompra: parseFloat(form.costoCompra),
-      costoVenta: parseFloat(form.costoVenta),
-      stockActual: parseInt(form.stockActual),
-    };
-    
-    
+  const handleGuardar = async (articulo: any) => {
+    setError(null);
     try {
+      const articuloDTO: CrearArticuloDTO = {
+        nombre: articulo.nombre,
+        descripcion: articulo.descripcion,
+        costoAlmacenamiento: parseFloat(articulo.costoAlmacenamiento),
+        demandaArticulo: parseFloat(articulo.demandaArticulo),
+        costoVenta: parseFloat(articulo.costoVenta),
+        stockActual: parseInt(articulo.stockActual),
+        produccionDiaria: parseInt(articulo.produccionDiaria),
+        z: parseInt(articulo.z),
+        desviacionEstandar: parseInt(articulo.desviacionEstandar),
+      };
+
+      if (articulo.codigo) {
+        articuloDTO.codArticulo = parseInt(articulo.codigo);
+      }
+
       await articuloServiceReal.saveArticulo(articuloDTO);
+      alert("Artículo creado correctamente");
       navigate("/articulos");
-    } catch (error) {
-      console.error("Error:", error);
-      setMensajeError("Hubo un problema al guardar el artículo.");
+    } catch (err) {
+      console.error("Error al guardar:", err);
+      const errorMessage = err instanceof Error ? err.message : "Hubo un problema al guardar el artículo.";
+      setError(errorMessage);
     }
   };
 
@@ -98,96 +51,13 @@ const AltaArticulo = () => {
           &gt; Agregar artículo
         </h1>
       </div>
-      <FormularioSeccion
-        icono={<MdArticle />}
-        titulo='Información básica del artículo'
-      >
-        <div className='formulario-grid'>
-          <CampoTexto
-            label='Código'
-            name='codigo'
-            value={form.codigo}
-            onChange={handleChange}
-            placeholder='Ingrese código'
-            required
-            error={errores.codigo}
-          />
-          <CampoTexto
-            label='Nombre'
-            name='nombre'
-            value={form.nombre}
-            onChange={handleChange}
-            placeholder='Ingrese nombre'
-            required
-            error={errores.nombre}
-          />
-          <CampoTextoArea
-            label='Descripción'
-            name='descripcion'
-            value={form.descripcion}
-            onChange={handleChange}
-            placeholder='Descripción artículo'
-          />
-          <CampoTexto
-            label='Costo de almacenamiento'
-            name='costoAlmacenamiento'
-            type='number'
-            value={form.costoAlmacenamiento}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoAlmacenamiento}
-          />
-          <CampoTexto
-            label='Demanda artículo'
-            name='demanda'
-            type='number'
-            value={form.demanda}
-            onChange={handleChange}
-            placeholder='Ingrese demanda'
-            required
-            error={errores.demanda}
-          />
-          <CampoTexto
-            label='Costo de compra'
-            name='costoCompra'
-            type='number'
-            value={form.costoCompra}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoCompra}
-          />
-          <CampoTexto
-            label='Costo de venta'
-            name='costoVenta'
-            type='number'
-            value={form.costoVenta}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoVenta}
-          />
-          <CampoTexto
-            label='Stock actual'
-            name='stockActual'
-            type='number'
-            value={form.stockActual}
-            onChange={handleChange}
-            placeholder='Ingrese stock inicial'
-            required
-            error={errores.stockActual}
-          />
-        </div>
-        <BotonAgregar
-          texto='Guardar artículo'
-          onClick={handleGuardar}
-          icono={<FaSave />}
-        />
-      </FormularioSeccion>
-      <div style={{ marginTop: 16 }}>
-        {mensajeError && <Notificacion tipo='error' mensaje={mensajeError} />}
-      </div>
+
+      {error && <div style={{ marginBottom: 16 }}><Notificacion tipo='error' mensaje={error} /></div>}
+      
+      <FormularioArticulo
+        modo='alta'
+        onGuardar={handleGuardar}
+      />
     </div>
   );
 };

@@ -8,7 +8,7 @@ interface Props {
   placeholder?: string;
   type?: string;
   required?: boolean;
-  error?: boolean;
+  error?: boolean | string;
   disabled?: boolean;
 }
 
@@ -20,16 +20,19 @@ const CampoTexto = ({
   placeholder = "",
   type = "text",
   required = false,
-  error,
+  error = false,
   disabled = false,
 }: Props) => {
+  const hasError = !!error;
+
   return (
     <div className='campo'>
-      <label>
+      <label htmlFor={name}>
         {label}
-        {required && " *"}
+        {required && <span className="required-asterisk"> *</span>}
       </label>
       <input
+        id={name}
         name={name}
         value={value}
         onChange={onChange}
@@ -37,8 +40,15 @@ const CampoTexto = ({
         type={type}
         required={required}
         disabled={disabled}
-        className={`campo-input ${error ? "input-error" : ""}`}
+        className={`campo-input ${hasError ? "input-error" : ""}`}
+        aria-invalid={hasError}
+        aria-describedby={hasError ? `${name}-error` : undefined}
       />
+      {hasError && typeof error === 'string' && (
+        <p id={`${name}-error`} className="error-message" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

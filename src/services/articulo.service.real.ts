@@ -62,14 +62,16 @@ export interface Page<T> {
 }
 
 export interface ArticuloDTO {
-  codigo: number;
+  codArticulo: number;
   nombre: string;
   descripcion: string;
   costoAlmacenamiento: number;
-  demanda: number;
-  costoCompra: number;
+  demandaArticulo: number;
   costoVenta: number;
   stockActual: number;
+  produccionDiaria: number;
+  z: number;
+  desviacionEstandar: number;
 }
 
 export interface EditarArticuloDTO {
@@ -77,9 +79,24 @@ export interface EditarArticuloDTO {
   descripcion: string;
   demanda: number;
   costoAlmacenamiento: number;
-  costoCompra: number;
   costoVenta: number;
   stockActual: number;
+  produccionDiaria: number;
+  z: number;
+  desviacionEstandar: number;
+}
+
+export interface CrearArticuloDTO {
+  nombre: string;
+  descripcion: string;
+  costoAlmacenamiento: number;
+  demandaArticulo: number;
+  costoVenta: number;
+  stockActual: number;
+  produccionDiaria: number;
+  z: number;
+  desviacionEstandar: number;
+  codArticulo?: number;
 }
 
 class ArticuloServiceReal {
@@ -120,14 +137,34 @@ class ArticuloServiceReal {
   }
 
   // POST /articulos - Crear nuevo artículo
-  async saveArticulo(articulo: ArticuloDTO): Promise<any> {
-    const response = await apiPost(API_ENDPOINTS.ARTICULOS, articulo);
-    if (!isSuccessfulResponse(response)) await handleApiError(response);
-    return response.json();
+  async saveArticulo(articulo: CrearArticuloDTO): Promise<Articulo | void> {
+    try {
+      const response = await apiPost(API_ENDPOINTS.ARTICULOS, articulo);
+      if (!isSuccessfulResponse(response)) {
+        await handleApiError(response);
+      }
+  
+      const text = await response.text();
+      if (!text) {
+        return; // Éxito si la respuesta está vacía
+      }
+
+      try {
+        // Intenta parsear como JSON
+        return JSON.parse(text) as Articulo;
+      } catch (e) {
+        // Si falla, asume que es un mensaje de texto de éxito
+        console.log("Respuesta no es JSON, pero se considera éxito:", text);
+        return;
+      }
+    } catch (error) {
+      console.error('Error guardando artículo:', error);
+      throw error;
+    }
   }
 
   // PUT /articulos/{id} - Actualizar artículo
-  async updateArticulo(id: number, articuloData: EditarArticuloDTO): Promise<Articulo> {
+  async updateArticulo(id: number, articuloData: EditarArticuloDTO): Promise<Articulo | void> {
     try {
       const response = await apiPut(API_ENDPOINTS.ARTICULO_BY_ID(id), articuloData);
       
@@ -135,17 +172,29 @@ class ArticuloServiceReal {
         await handleApiError(response);
       }
       
-      return await response.json();
+      const text = await response.text();
+      if (!text) {
+        return; // Éxito si la respuesta está vacía
+      }
+
+      try {
+        // Intenta parsear como JSON
+        return JSON.parse(text) as Articulo;
+      } catch (e) {
+        // Si falla, asume que es un mensaje de texto de éxito (ej. "Actualizado")
+        console.log("Respuesta no es JSON, pero se considera éxito:", text);
+        return;
+      }
     } catch (error) {
       console.error('Error actualizando artículo:', error);
       throw error;
     }
   }
 
-  // DELETE /articulos/{id} - Eliminar artículo
+  // PUT /articulos/baja/{id} - Baja lógica de artículo
   async deleteById(id: number): Promise<void> {
     try {
-      const response = await apiDelete(API_ENDPOINTS.ARTICULO_BY_ID(id));
+      const response = await apiPut(API_ENDPOINTS.ARTICULO_BAJA_BY_ID(id));
       
       if (!isSuccessfulResponse(response)) {
         await handleApiError(response);
@@ -209,7 +258,7 @@ class ArticuloServiceReal {
   // GET /articulos/search?q={query} - Buscar artículos
   async searchArticulos(query: string): Promise<Articulo[]> {
     try {
-      const response = await apiGet(`${API_ENDPOINTS.ARTICULOS}/search?q=${encodeURIComponent(query)}`);
+      const response = await apiGet(API_ENDPOINTS.ARTICULOS_SEARCH(query));
       
       if (!isSuccessfulResponse(response)) {
         await handleApiError(response);
@@ -250,6 +299,22 @@ class ArticuloServiceReal {
       return await response.json();
     } catch (error) {
       console.error('Error obteniendo artículos por tipo:', error);
+      throw error;
+    }
+  }
+
+  // GET /articulos/a-asignar - Obtener artículos para asignar a un proveedor
+  async findArticulosAAsignar(): Promise<Articulo[]> {
+    try {
+      const response = await apiGet(API_ENDPOINTS.ARTICULOS_A_ASIGNAR);
+      
+      if (!isSuccessfulResponse(response)) {
+        await handleApiError(response);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error obteniendo artículos para asignar:', error);
       throw error;
     }
   }

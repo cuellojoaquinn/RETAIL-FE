@@ -41,10 +41,28 @@ class VentaServiceReal {
     return response.json();
   }
 
-  async saveVenta(venta: VentaCreate): Promise<Venta> {
-    const response = await apiPost(API_ENDPOINTS.VENTAS, venta);
-    if (!isSuccessfulResponse(response)) await handleApiError(response);
-    return response.json();
+  async saveVenta(venta: VentaCreate): Promise<Venta | void> {
+    try {
+      const response = await apiPost(API_ENDPOINTS.VENTAS, venta);
+      if (!isSuccessfulResponse(response)) {
+        await handleApiError(response);
+      }
+  
+      const text = await response.text();
+      if (!text) {
+        return; // Éxito si la respuesta está vacía
+      }
+
+      try {
+        return JSON.parse(text) as Venta;
+      } catch (e) {
+        console.log("Respuesta no es JSON, pero se considera éxito:", text);
+        return;
+      }
+    } catch (error) {
+      console.error('Error guardando venta:', error);
+      throw error;
+    }
   }
 
   async updateVenta(id: number, data: Partial<Venta>): Promise<Venta> {

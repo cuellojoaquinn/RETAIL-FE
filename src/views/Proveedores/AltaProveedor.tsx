@@ -1,37 +1,50 @@
 // 📁 src/views/Proveedores/AltaProveedor.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CampoTexto from '../../components/CampoText';
 import FormularioSeccion from '../../components/FormularioSeccion';
 import BotonAgregar from '../../components/BotonAgregar';
 import Notificacion from '../../components/Notificacion';
 import { MdPerson, MdInventory, MdStar, MdStarBorder, MdDelete, MdSettings } from 'react-icons/md';
+import proveedorServiceReal from '../../services/proveedor.service.real';
+import articuloServiceReal, { type Articulo as ServiceArticulo } from '../../services/articulo.service.real';
 
-interface Articulo {
-  id: string;
+interface FormArticulo {
+  id: number;
+  codArticulo: number;
   nombre: string;
   esPredeterminado: boolean;
-  tipoModelo: 'Lote fijo' | 'Intervalo fijo' | '';
+  tipoModelo: 'Lote Fijo' | 'Intervalo Fijo' | '';
   demoraEntrega: string;
   precioUnitario: string;
   cargosPedido: string;
   tiempoRevision: string;
 }
 
-const articulosMock = [
-  { id: 'A001', nombre: 'Artículo A1' },
-  { id: 'A002', nombre: 'Artículo A2' },
-  { id: 'A003', nombre: 'Artículo A3' },
-  { id: 'A004', nombre: 'Artículo A4' }
-];
-
 const AltaProveedor = () => {
   const [proveedor, setProveedor] = useState({ nombre: '', direccion: '' });
-  const [articulos, setArticulos] = useState<Articulo[]>([]);
-  const [articuloSeleccionado, setArticuloSeleccionado] = useState<any>(null);
+  const [articulos, setArticulos] = useState<FormArticulo[]>([]);
+  const [articulosDisponibles, setArticulosDisponibles] = useState<ServiceArticulo[]>([]);
+  const [articuloSeleccionado, setArticuloSeleccionado] = useState<ServiceArticulo | null>(null);
   const [error, setError] = useState('');
   const [erroresArticulos, setErroresArticulos] = useState<{ [id: string]: { [field: string]: boolean } }>({});
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchArticulos = async () => {
+      try {
+        setLoading(true);
+        const response = await articuloServiceReal.findArticulosAAsignar();
+        setArticulosDisponibles(response);
+        setLoading(false);
+      } catch (error) {
+        setError('Error al cargar los artículos');
+        setLoading(false);
+      }
+    };
+    fetchArticulos();
+  }, []);
 
   // Validación en tiempo real del formulario
   const formularioValido = useMemo(() => {
@@ -42,12 +55,6 @@ const AltaProveedor = () => {
 
     // Validar que haya al menos un artículo
     if (articulos.length === 0) {
-      return false;
-    }
-
-    // Validar que al menos un artículo sea predeterminado
-    const tienePredeterminado = articulos.some(art => art.esPredeterminado);
-    if (!tienePredeterminado) {
       return false;
     }
 
@@ -99,7 +106,9 @@ const AltaProveedor = () => {
         return;
       }
       setArticulos([...articulos, {
-        ...articuloSeleccionado,
+        id: articuloSeleccionado.id,
+        codArticulo: articuloSeleccionado.codArticulo,
+        nombre: articuloSeleccionado.nombre,
         esPredeterminado: false,
         tipoModelo: '',
         demoraEntrega: '',
@@ -112,30 +121,30 @@ const AltaProveedor = () => {
     }
   };
   
-  const handleArticuloChange = (id: string, field: keyof Articulo, value: any) => {
+  const handleArticuloChange = (id: number, field: keyof FormArticulo, value: any) => {
     setArticulos(prev => prev.map(art => 
       art.id === id ? { ...art, [field]: value } : art
     ));
     // Limpiar errores al corregir
-    if (erroresArticulos[id] && erroresArticulos[id][field]) {
+    if (erroresArticulos[String(id)] && erroresArticulos[String(id)][field]) {
       setErroresArticulos(prev => {
         const newErrors = { ...prev };
-        delete newErrors[id][field];
-        if (Object.keys(newErrors[id]).length === 0) {
-          delete newErrors[id];
+        delete newErrors[String(id)][field];
+        if (Object.keys(newErrors[String(id)]).length === 0) {
+          delete newErrors[String(id)];
         }
         return newErrors;
       });
     }
   };
 
-  const togglePredeterminado = (articuloId: string) => {
+  const togglePredeterminado = (articuloId: number) => {
     setArticulos(prev => prev.map(art =>
       art.id === articuloId ? { ...art, esPredeterminado: !art.esPredeterminado } : art
     ));
   };
 
-  const eliminarArticulo = (articuloId: string) => {
+  const eliminarArticulo = (articuloId: number) => {
     setArticulos(prev => prev.filter(art => art.id !== articuloId));
   };
 
@@ -166,7 +175,7 @@ const AltaProveedor = () => {
         formValido = false;
       }
       if (Object.keys(erroresArt).length > 0) {
-        nuevosErrores[art.id] = erroresArt;
+        nuevosErrores[String(art.id)] = erroresArt;
       }
     }
 
@@ -174,7 +183,7 @@ const AltaProveedor = () => {
     return formValido;
   }
 
-  const handleGuardarProveedor = () => {
+  const handleGuardarProveedor = async () => {
     if (!formularioValido) {
       if (!proveedor.nombre.trim()) {
         setError('Debe completar el nombre del proveedor');
@@ -184,11 +193,6 @@ const AltaProveedor = () => {
         setError('Debe agregar al menos un artículo');
         return;
       }
-      const tienePredeterminado = articulos.some(art => art.esPredeterminado);
-      if (!tienePredeterminado) {
-        setError('Debe marcar al menos un artículo como proveedor predeterminado');
-        return;
-      }
       if (!validarFormulario()) {
         setError('Complete todos los campos de los artículos con formatos válidos');
         return;
@@ -196,11 +200,36 @@ const AltaProveedor = () => {
       return;
     }
 
-    // Si llegamos aquí, el formulario es válido
-    navigate('/proveedores', { state: { mensaje: 'Se añadió el proveedor correctamente.' } });
+    setLoading(true);
+
+    const payload = {
+      nombre: proveedor.nombre,
+      proveedorArticulos: articulos.map(art => ({
+        demoraEntrega: Number(art.demoraEntrega),
+        precioUnitario: Number(art.precioUnitario),
+        cargosPedido: Number(art.cargosPedido),
+        articulo: {
+          id: art.id,
+          nombre: art.nombre,
+          codArticulo: art.codArticulo
+        },
+        tiempoRevision: Number(art.tiempoRevision),
+        tipoModelo: art.tipoModelo === 'Lote Fijo' ? 'LOTE_FIJO' : 'INTERVALO_FIJO'
+      }))
+    };
+
+    try {
+      await proveedorServiceReal.createProveedorWithArticulos(payload);
+      setLoading(false);
+      navigate('/proveedores', { state: { mensaje: 'Se añadió el proveedor correctamente.' } });
+    } catch (err) {
+      setError('Error al crear el proveedor. Intente nuevamente.');
+      setLoading(false);
+      console.error(err);
+    }
   };
 
-  const articulosDisponibles = articulosMock.filter(art =>
+  const articulosParaSeleccionar = articulosDisponibles.filter(art =>
     !articulos.find(agregado => agregado.id === art.id)
   );
 
@@ -252,11 +281,11 @@ const AltaProveedor = () => {
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <select
               value={articuloSeleccionado?.id || ''}
-              onChange={(e) => setArticuloSeleccionado(articulosMock.find(a => a.id === e.target.value) || null)}
+              onChange={(e) => setArticuloSeleccionado(articulosDisponibles.find(a => a.id === Number(e.target.value)) || null)}
               style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', minWidth: '200px' }}
             >
               <option value="">Seleccionar artículo</option>
-              {articulosDisponibles.map(art => <option key={art.id} value={art.id}>{art.nombre}</option>)}
+              {articulosParaSeleccionar.map(art => <option key={art.id} value={art.id}>{art.nombre} (Cod: {art.codArticulo})</option>)}
             </select>
             <button
               onClick={handleAgregarArticulo}
@@ -266,7 +295,8 @@ const AltaProveedor = () => {
               Agregar artículo
             </button>
           </div>
-          {articulosDisponibles.length === 0 && <p style={{ color: '#666', fontStyle: 'italic', marginTop: '0.5rem' }}>Todos los artículos disponibles han sido agregados</p>}
+          {loading && <p>Cargando artículos...</p>}
+          {articulosParaSeleccionar.length === 0 && !loading && <p style={{ color: '#666', fontStyle: 'italic', marginTop: '0.5rem' }}>Todos los artículos disponibles han sido agregados</p>}
         </div>
 
         {articulos.length > 0 && (
@@ -280,7 +310,7 @@ const AltaProveedor = () => {
             </div>
             <div style={{ display: 'grid', gap: '1rem' }}>
               {articulos.map((articulo) => (
-                <div key={articulo.id} style={{ border: erroresArticulos[articulo.id] ? '1px solid #dc3545' : (articulo.esPredeterminado ? '2px solid #FDD36D' : '1px solid #ddd'), borderRadius: '8px', backgroundColor: articulo.esPredeterminado ? '#FFFBF0' : 'white', transition: 'all 0.2s ease' }}>
+                <div key={articulo.id} style={{ border: erroresArticulos[String(articulo.id)] ? '1px solid #dc3545' : (articulo.esPredeterminado ? '2px solid #FDD36D' : '1px solid #ddd'), borderRadius: '8px', backgroundColor: articulo.esPredeterminado ? '#FFFBF0' : 'white', transition: 'all 0.2s ease' }}>
                   <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', borderBottom: '1px solid #eee' }}>
                     <button onClick={() => togglePredeterminado(articulo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', marginRight: '1rem' }} title={articulo.esPredeterminado ? 'Quitar como predeterminado' : 'Marcar como predeterminado'}>
                       {articulo.esPredeterminado ? <MdStar style={{ color: '#FDD36D', fontSize: '1.5rem' }} /> : <MdStarBorder style={{ color: '#ccc', fontSize: '1.5rem' }} />}
@@ -295,17 +325,17 @@ const AltaProveedor = () => {
                     
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Tipo de modelo</label>
-                      <select value={articulo.tipoModelo} onChange={(e) => handleArticuloChange(articulo.id, 'tipoModelo', e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: erroresArticulos[articulo.id]?.tipoModelo ? '1px solid #dc3545' : '1px solid #ccc' }}>
+                      <select value={articulo.tipoModelo} onChange={(e) => handleArticuloChange(articulo.id, 'tipoModelo', e.target.value as FormArticulo['tipoModelo'])} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: erroresArticulos[String(articulo.id)]?.tipoModelo ? '1px solid #dc3545' : '1px solid #ccc' }}>
                         <option value="">Seleccionar</option>
-                        <option value="Lote fijo">Lote fijo</option>
-                        <option value="Intervalo fijo">Intervalo fijo</option>
+                        <option value="Lote Fijo">Lote Fijo</option>
+                        <option value="Intervalo Fijo">Intervalo Fijo</option>
                       </select>
                     </div>
 
-                    <CampoTexto label="Demora de entrega (días)" name="demoraEntrega" value={articulo.demoraEntrega} onChange={(e) => handleArticuloChange(articulo.id, 'demoraEntrega', e.target.value)} type="number" error={erroresArticulos[articulo.id]?.demoraEntrega} />
-                    <CampoTexto label="Precio unitario ($)" name="precioUnitario" value={articulo.precioUnitario} onChange={(e) => handleArticuloChange(articulo.id, 'precioUnitario', e.target.value)} type="number" error={erroresArticulos[articulo.id]?.precioUnitario} />
-                    <CampoTexto label="Cargos de pedido ($)" name="cargosPedido" value={articulo.cargosPedido} onChange={(e) => handleArticuloChange(articulo.id, 'cargosPedido', e.target.value)} type="number" error={erroresArticulos[articulo.id]?.cargosPedido} />
-                    <CampoTexto label="Tiempo de revisión (días)" name="tiempoRevision" value={articulo.tiempoRevision} onChange={(e) => handleArticuloChange(articulo.id, 'tiempoRevision', e.target.value)} type="number" error={erroresArticulos[articulo.id]?.tiempoRevision} />
+                    <CampoTexto label="Demora de entrega (días)" name="demoraEntrega" value={articulo.demoraEntrega} onChange={(e) => handleArticuloChange(articulo.id, 'demoraEntrega', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.demoraEntrega} />
+                    <CampoTexto label="Precio unitario ($)" name="precioUnitario" value={articulo.precioUnitario} onChange={(e) => handleArticuloChange(articulo.id, 'precioUnitario', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.precioUnitario} />
+                    <CampoTexto label="Cargos de pedido ($)" name="cargosPedido" value={articulo.cargosPedido} onChange={(e) => handleArticuloChange(articulo.id, 'cargosPedido', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.cargosPedido} />
+                    <CampoTexto label="Tiempo de revisión (días)" name="tiempoRevision" value={articulo.tiempoRevision} onChange={(e) => handleArticuloChange(articulo.id, 'tiempoRevision', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.tiempoRevision} />
                   
                   </div>
                 </div>
@@ -327,14 +357,13 @@ const AltaProveedor = () => {
         <BotonAgregar 
           texto="Añadir proveedor" 
           onClick={handleGuardarProveedor} 
-          disabled={!formularioValido}
+          disabled={!formularioValido || loading}
         />
         {!formularioValido && articulos.length > 0 && (
           <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
             <p>Para habilitar el botón, complete:</p>
             <ul style={{ margin: '0.25rem 0', paddingLeft: '1.5rem' }}>
               {!proveedor.nombre.trim() && <li>Nombre del proveedor</li>}
-              {!articulos.some(art => art.esPredeterminado) && <li>Marcar al menos un artículo como predeterminado</li>}
               {articulosCompletos < articulos.length && <li>Todos los campos de los artículos ({articulosCompletos}/{articulos.length} completos)</li>}
             </ul>
           </div>

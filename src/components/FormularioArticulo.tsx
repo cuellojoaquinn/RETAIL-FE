@@ -1,271 +1,162 @@
 import { useEffect, useState } from "react";
+import { MdArticle, MdPerson, MdInventory, MdTrendingUp, MdAttachMoney } from "react-icons/md";
 import CampoTexto from "../components/CampoText";
 import CampoTextoArea from "../components/CampoTextoArea";
 import FormularioSeccion from "../components/FormularioSeccion";
 import BotonAgregar from "../components/BotonAgregar";
 import Notificacion from "../components/Notificacion";
-import { MdArticle, MdPerson } from "react-icons/md";
 import "../styles/ProveedorPredeterminado.css";
-import { apiGet, API_ENDPOINTS, handleApiError } from "../config/api";
+import { FaSave } from "react-icons/fa";
 
-interface Articulo {
+interface ArticuloForm {
   codigo: string;
   nombre: string;
   descripcion?: string;
   costoAlmacenamiento: string;
-  demanda: string;
-  costoCompra: string;
+  demandaArticulo: string;
   costoVenta: string;
   stockActual: string;
+  produccionDiaria: string;
+  z: string;
+  desviacionEstandar: string;
   proveedorPredeterminado?: string;
 }
 
 interface Props {
   modo: "alta" | "edicion";
-  codigoArticulo?: string; // solo necesario en modo edición
-  proveedoresDisponibles?: string[];
-  onGuardar: (articulo: Articulo) => void;
+  datosIniciales?: any;
+  onGuardar: (articulo: ArticuloForm) => void;
 }
 
-const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
-  const [form, setForm] = useState<Articulo>({
+const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
+  const [form, setForm] = useState<ArticuloForm>({
     codigo: "",
     nombre: "",
     descripcion: "",
     costoAlmacenamiento: "",
-    demanda: "",
-    costoCompra: "",
+    demandaArticulo: "",
     costoVenta: "",
     stockActual: "",
+    produccionDiaria: "",
+    z: "",
+    desviacionEstandar: "",
     proveedorPredeterminado: "",
   });
-  const proveedores = [
-    "P001 - Proveedor1",
-    "P002 - Proveedor2",
-    "P003 - Proveedor3",
-  ];
-  const [errores, setErrores] = useState<{ [key: string]: boolean }>({});
-  const [mensajeError, setMensajeError] = useState<string | null>(null);
 
-  // Cargar datos del artículo cuando está en modo edición
+  const [errores, setErrores] = useState<{ [key: string]: string }>({});
+  const [mensajeGlobalError, setMensajeGlobalError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (modo === "edicion" && codigoArticulo) {
-      console.log("FormularioArticulo - codigoArticulo recibido:", codigoArticulo);
-      console.log("FormularioArticulo - tipo:", typeof codigoArticulo);
-      
-      // Validar que el código sea un número válido
-      const codigoNumero = parseInt(codigoArticulo);
-      if (isNaN(codigoNumero)) {
-        console.error("FormularioArticulo - código inválido:", codigoArticulo);
-        setMensajeError("Código de artículo inválido");
-        return;
-      }
-      
-      const obtenerArticulo = async () => {
-        try {
-          const res = await apiGet(API_ENDPOINTS.ARTICULO_BY_ID(codigoNumero));
-          if (!res.ok) {
-            await handleApiError(res);
-          }
-          const data = await res.json();
-          
-          // Mapear la respuesta del backend al formato del formulario
-          setForm({
-            codigo: data.codArticulo.toString(),
-            nombre: data.nombre,
-            descripcion: data.descripcion || "",
-            costoAlmacenamiento: data.costoAlmacenamiento.toString(),
-            demanda: data.demandaArticulo.toString(),
-            costoCompra: data.costoVenta.toString(),
-            costoVenta: data.costoVenta.toString(),
-            stockActual: data.stockActual.toString(),
-            proveedorPredeterminado: "",
-          });
-        } catch (err) {
-          console.error("Error al obtener artículo:", err);
-          setMensajeError("No se pudo cargar la información del artículo.");
-        }
-      };
-
-      obtenerArticulo();
+    if (datosIniciales) {
+      setForm({
+        codigo: datosIniciales.codArticulo?.toString() || "",
+        nombre: datosIniciales.nombre || "",
+        descripcion: datosIniciales.descripcion || "",
+        costoAlmacenamiento: datosIniciales.costoAlmacenamiento?.toString() || "",
+        demandaArticulo: datosIniciales.demandaArticulo?.toString() || "",
+        costoVenta: datosIniciales.costoVenta?.toString() || "",
+        stockActual: datosIniciales.stockActual?.toString() || "",
+        produccionDiaria: datosIniciales.produccionDiaria?.toString() || "",
+        z: datosIniciales.z?.toString() || "",
+        desviacionEstandar: datosIniciales.desviacionEstandar?.toString() || "",
+        proveedorPredeterminado: datosIniciales.proveedorPredeterminado || "",
+      });
     }
-  }, [modo, codigoArticulo]);
+  }, [datosIniciales]);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (errores[name]) {
+      setErrores((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validarFormulario = () => {
+    const nuevosErrores: { [key: string]: string } = {};
+    if (modo === 'alta' && !form.codigo) nuevosErrores.codigo = "El código es requerido.";
+    if (!form.nombre) nuevosErrores.nombre = "El nombre es requerido.";
+    if (!form.costoAlmacenamiento) nuevosErrores.costoAlmacenamiento = "El costo es requerido.";
+    if (!form.demandaArticulo) nuevosErrores.demandaArticulo = "La demanda es requerida.";
+    if (!form.costoVenta) nuevosErrores.costoVenta = "El costo de venta es requerido.";
+    if (!form.stockActual) nuevosErrores.stockActual = "El stock es requerido.";
+    if (!form.produccionDiaria) nuevosErrores.produccionDiaria = "La producción es requerida.";
+    if (!form.z) nuevosErrores.z = "El valor Z es requerido.";
+    if (!form.desviacionEstandar) nuevosErrores.desviacionEstandar = "La desviación es requerida.";
+    
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
   };
 
   const handleGuardar = () => {
-    const camposRequeridos: { [key: string]: string } = {
-      codigo: "Código",
-      nombre: "Nombre",
-      costoAlmacenamiento: "Costo de almacenamiento",
-      demanda: "Demanda",
-      costoCompra: "Costo de compra",
-      costoVenta: "Costo de venta",
-      stockActual: "Stock actual",
-    };
-
-    const nuevosErrores: { [key: string]: boolean } = {};
-    const camposFaltantes: string[] = [];
-
-    Object.entries(camposRequeridos).forEach(([campo, label]) => {
-      if (!form[campo as keyof Articulo]) {
-        nuevosErrores[campo] = true;
-        camposFaltantes.push(label);
-      }
-    });
-
-    if (camposFaltantes.length > 0) {
-      setMensajeError("Faltan completar los siguientes campos:");
+    setMensajeGlobalError(null);
+    if (!validarFormulario()) {
+      setMensajeGlobalError("Por favor, corrija los errores en el formulario.");
       return;
     }
-
-    setErrores({});
-    setMensajeError(null);
-
     onGuardar(form);
   };
 
   return (
-    <>
-      {mensajeError && (
+    <div className="formulario-articulo-container">
+      {mensajeGlobalError && (
         <div style={{ marginBottom: 16 }}>
-          <Notificacion tipo='error' mensaje={mensajeError} />
+          <Notificacion tipo='error' mensaje={mensajeGlobalError} />
         </div>
       )}
 
-      <FormularioSeccion
-        icono={<MdArticle />}
-        titulo='Información básica del artículo'
-      >
+      <FormularioSeccion icono={<MdArticle />} titulo='Información General'>
         <div className='formulario-grid'>
-          <CampoTexto
-            label='Código'
-            name='codigo'
-            value={form.codigo}
-            onChange={handleChange}
-            placeholder='Ingrese código'
-            required
-            disabled={modo === 'edicion'}
-            error={errores.codigo}
-          />
-          <CampoTexto
-            label='Nombre'
-            name='nombre'
-            value={form.nombre}
-            onChange={handleChange}
-            placeholder='Ingrese nombre'
-            required
-            error={errores.nombre}
-          />
-          <CampoTextoArea
-            label='Descripción'
-            name='descripcion'
-            value={form.descripcion || ""}
-            onChange={handleChange}
-            placeholder='Descripción del artículo'
-          />
-          <CampoTexto
-            label='Costo de almacenamiento'
-            name='costoAlmacenamiento'
-            type='number'
-            value={form.costoAlmacenamiento}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoAlmacenamiento}
-          />
-          <CampoTexto
-            label='Demanda'
-            name='demanda'
-            type='number'
-            value={form.demanda}
-            onChange={handleChange}
-            placeholder='Ingrese demanda'
-            required
-            error={errores.demanda}
-          />
-          <CampoTexto
-            label='Costo de compra'
-            name='costoCompra'
-            type='number'
-            value={form.costoCompra}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoCompra}
-          />
-          <CampoTexto
-            label='Costo de venta'
-            name='costoVenta'
-            type='number'
-            value={form.costoVenta}
-            onChange={handleChange}
-            placeholder='Ingrese costo'
-            required
-            error={errores.costoVenta}
-          />
-          <CampoTexto
-            label='Stock actual'
-            name='stockActual'
-            type='number'
-            value={form.stockActual}
-            onChange={handleChange}
-            placeholder='Ingrese stock actual'
-            required
-            error={errores.stockActual}
-          />
+          <CampoTexto label='Código' name='codigo' value={form.codigo} onChange={handleChange} placeholder='Ingrese código' required disabled={modo === 'edicion'} error={errores.codigo} />
+          <CampoTexto label='Nombre' name='nombre' value={form.nombre} onChange={handleChange} placeholder='Ingrese nombre' required error={errores.nombre} />
+          <CampoTextoArea label='Descripción' name='descripcion' value={form.descripcion || ""} onChange={handleChange} placeholder='Descripción del artículo' />
+        </div>
+      </FormularioSeccion>
+      
+      <FormularioSeccion icono={<MdAttachMoney />} titulo='Costos y Precios'>
+        <div className='formulario-grid'>
+          <CampoTexto label='Costo de Almacenamiento' name='costoAlmacenamiento' type='number' value={form.costoAlmacenamiento} onChange={handleChange} placeholder='Ingrese costo' required error={errores.costoAlmacenamiento} />
+          <CampoTexto label='Costo de Venta' name='costoVenta' type='number' value={form.costoVenta} onChange={handleChange} placeholder='Ingrese costo' required error={errores.costoVenta} />
+        </div>
+      </FormularioSeccion>
+      
+      <FormularioSeccion icono={<MdInventory />} titulo='Gestión de Inventario'>
+        <div className='formulario-grid'>
+          <CampoTexto label='Stock Actual' name='stockActual' type='number' value={form.stockActual} onChange={handleChange} placeholder='Ingrese stock' required error={errores.stockActual} />
+          <CampoTexto label='Demanda Diaria' name='demandaArticulo' type='number' value={form.demandaArticulo} onChange={handleChange} placeholder='Ingrese demanda' required error={errores.demandaArticulo} />
+          <CampoTexto label='Producción Diaria' name='produccionDiaria' type='number' value={form.produccionDiaria} onChange={handleChange} placeholder='Ingrese producción' required error={errores.produccionDiaria} />
+        </div>
+      </FormularioSeccion>
+      
+      <FormularioSeccion icono={<MdTrendingUp />} titulo='Parámetros de Modelo de Inventario'>
+        <div className='formulario-grid'>
+          <CampoTexto label='Nivel de Confianza (Z)' name='z' type='number' value={form.z} onChange={handleChange} placeholder='Ingrese Z' required error={errores.z} />
+          <CampoTexto label='Desviación Estándar de la Demanda' name='desviacionEstandar' type='number' value={form.desviacionEstandar} onChange={handleChange} placeholder='Ingrese desviación' required error={errores.desviacionEstandar} />
         </div>
       </FormularioSeccion>
 
-      <FormularioSeccion icono={<MdPerson />} titulo='Proveedor'>
-        <div className='formulario-grid'>
-          <div className='campo'>
-            <label htmlFor='proveedorPredeterminado'>
-              Seleccionar proveedor predeterminado:
-            </label>
-            <select
-              id='proveedorPredeterminado'
-              name='proveedorPredeterminado'
-              value={form.proveedorPredeterminado || ""}
-              onChange={handleChange}
-              className='select-proveedor'
-            >
-              <option value=''>Seleccionar proveedor</option>
-              {proveedores.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+      {modo === 'edicion' && (
+        <FormularioSeccion icono={<MdPerson />} titulo='Proveedor Predeterminado'>
+          <div className='formulario-grid-single'>
+              <label htmlFor='proveedorPredeterminado'>Proveedor</label>
+              <select id='proveedorPredeterminado' name='proveedorPredeterminado' value={form.proveedorPredeterminado || ""} onChange={handleChange} className='select-proveedor'>
+                <option value=''>Seleccionar proveedor</option>
+                {/* Aquí deberías cargar los proveedores desde un servicio */}
+                <option value='1'>Proveedor 1</option>
+                <option value='2'>Proveedor 2</option>
+              </select>
           </div>
-        </div>
+        </FormularioSeccion>
+      )}
 
-        {form.proveedorPredeterminado && (
-          <div className='contenedor-proveedor'>
-            <span className='etiqueta-predeterminada'>
-              Proveedor predeterminado
-            </span>
-            <span className='nombre-proveedor'>
-              {form.proveedorPredeterminado}
-            </span>
-          </div>
-        )}
-      </FormularioSeccion>
-
-      <div style={{ marginTop: 24 }}>
-        <BotonAgregar
-          texto={modo === "alta" ? "Guardar artículo" : "Editar artículo"}
-          onClick={handleGuardar}
-        />
+      <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <BotonAgregar texto={modo === 'alta' ? 'Guardar Artículo' : 'Guardar Cambios'} onClick={handleGuardar} icono={<FaSave />} />
       </div>
-    </>
+    </div>
   );
 };
 

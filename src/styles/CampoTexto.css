@@ -1,17 +1,47 @@
 .campo {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .campo label {
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-texto-principal);
 }
 
-.campo input.input-error {
-  border: 2px solid var(--color-acento-red);
-  background-color: #fff5f5;
+.campo-input {
+  padding: 0.75rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.campo-input:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.campo-input.input-error {
+  border-color: var(--color-error);
+}
+
+.campo-input.input-error:focus {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+.required-asterisk {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  height: 1em; /* Reservar espacio para que no salte el layout */
 }
 
 .campo input:disabled {

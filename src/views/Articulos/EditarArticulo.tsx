@@ -67,11 +67,13 @@ const EditarArticulo = () => {
       const articuloParaEnviar: EditarArticuloDTO = {
         nombre: articuloActualizado.nombre,
         descripcion: articuloActualizado.descripcion,
-        demanda: parseFloat(articuloActualizado.demanda),
+        demanda: parseFloat(articuloActualizado.demandaArticulo),
         costoAlmacenamiento: parseFloat(articuloActualizado.costoAlmacenamiento),
-        costoCompra: parseFloat(articuloActualizado.costoCompra),
         costoVenta: parseFloat(articuloActualizado.costoVenta),
         stockActual: parseInt(articuloActualizado.stockActual),
+        produccionDiaria: parseInt(articuloActualizado.produccionDiaria),
+        z: parseInt(articuloActualizado.z),
+        desviacionEstandar: parseInt(articuloActualizado.desviacionEstandar),
       };
       
       console.log("articuloParaEnviar", articuloParaEnviar);
@@ -156,10 +158,10 @@ const EditarArticulo = () => {
         </h1>
       </div>
 
-      {articulo && id && (
+      {articulo && (
         <FormularioArticulo
+          datosIniciales={articulo}
           modo='edicion'
-          codigoArticulo={id}
           onGuardar={handleGuardar}
         />
       )}
