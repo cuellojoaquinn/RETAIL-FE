@@ -68,7 +68,8 @@ const Proveedores = () => {
       setProveedores(proveedoresData);
       setProveedoresFiltrados(proveedoresData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando proveedores');
+      const mensaje = err instanceof Error ? err.message : 'Error cargando proveedores';
+      setError(mensaje);
       console.error('Error cargando proveedores:', err);
     } finally {
       setLoading(false);
@@ -244,9 +245,65 @@ const Proveedores = () => {
         <BotonAgregar onClick={() => navigate('/proveedores/alta')} texto="Agregar proveedor" />
       </div>
 
-      {proveedores.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <p>No se encontraron proveedores en el sistema</p>
+      {error && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Notificacion tipo='error' mensaje={error} />
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ 
+          padding: '2rem', 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center',
+          minHeight: '50vh'
+        }}>
+          <div style={{ 
+            width: '50px', 
+            height: '50px', 
+            border: '4px solid #f3f3f3', 
+            borderTop: '4px solid #007bff', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            marginBottom: '1rem'
+          }} />
+          <p>Cargando proveedores...</p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      ) : proveedores.length === 0 ? (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '2rem',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #dee2e6'
+        }}>
+          <h3 style={{ color: '#6c757d', marginBottom: '1rem' }}>No hay proveedores</h3>
+          <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
+            No se encontraron proveedores en el sistema. 
+            Puedes agregar el primer proveedor haciendo clic en "Agregar proveedor".
+          </p>
+          <button 
+            onClick={() => navigate('/proveedores/alta')}
+            style={{ 
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Agregar primer proveedor
+          </button>
         </div>
       ) : (
         <>

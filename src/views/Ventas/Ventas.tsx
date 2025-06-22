@@ -4,29 +4,46 @@ import { useNavigate } from 'react-router-dom';
 import TablaGenerica from '../../components/TablaGenerica';
 import BotonAgregar from '../../components/BotonAgregar';
 import ventaService from '../../services/venta.service.real';
-import type { Venta } from '../../services/venta.service';
-import { MdRefresh, MdWarning, MdShoppingCart, MdAttachMoney } from 'react-icons/md';
+import { MdRefresh, MdWarning, MdShoppingCart } from 'react-icons/md';
+
+// Tipo Venta según la respuesta real del backend
+export interface Venta {
+  id: number;
+  fechaVenta: string;
+  articulo: {
+    id: number;
+    codArticulo: number;
+    nombre: string;
+    descripcion: string;
+    produccionDiaria: number;
+    demandaArticulo: number;
+    costoAlmacenamiento: number;
+    costoVenta: number;
+    fechaBajaArticulo: string | null;
+    puntoPedido: number;
+    stockSeguridad: number;
+    inventarioMaximo: number;
+    loteOptimo: number;
+    stockActual: number;
+    z: number;
+    desviacionEstandar: number;
+    proveedorPredeterminado: number | null;
+    cgi: number;
+  };
+  cantidad: number;
+  montoTotal: number;
+}
 
 const Ventas = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [estadisticas, setEstadisticas] = useState({
-    total: 0,
-    completadas: 0,
-    pendientes: 0,
-    canceladas: 0,
-    totalVentas: 0,
-    promedioVenta: 0,
-    ventasHoy: 0
-  });
 
   const navigate = useNavigate();
 
   // Cargar ventas al montar el componente
   useEffect(() => {
     cargarVentas();
-    cargarEstadisticas();
   }, []);
 
   const cargarVentas = async () => {
@@ -42,15 +59,6 @@ const Ventas = () => {
       console.error('Error cargando ventas:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const cargarEstadisticas = async () => {
-    try {
-      const stats = await ventaService.getEstadisticas();
-      setEstadisticas(stats);
-    } catch (err) {
-      console.error('Error cargando estadísticas:', err);
     }
   };
 
@@ -143,39 +151,6 @@ const Ventas = () => {
         </div>
       </div>
 
-      {/* Estadísticas */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '2rem' 
-      }}>
-        <div style={{ 
-          backgroundColor: '#e3f2fd', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <MdShoppingCart style={{ color: '#1976d2', marginRight: '0.5rem' }} />
-            <h3 style={{ margin: 0, color: '#1976d2' }}>Total Ventas</h3>
-          </div>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{estadisticas.total}</p>
-        </div>
-        <div style={{ 
-          backgroundColor: '#e8f5e8', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <MdAttachMoney style={{ color: '#2e7d32', marginRight: '0.5rem' }} />
-            <h3 style={{ margin: 0, color: '#2e7d32' }}>Total Ingresos</h3>
-          </div>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>${estadisticas.totalVentas.toLocaleString()}</p>
-        </div>
-      </div>
-
       {ventas.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <MdShoppingCart style={{ fontSize: '3rem', color: '#6c757d', marginBottom: '1rem' }} />
@@ -191,12 +166,12 @@ const Ventas = () => {
             },
             { 
               header: "Artículo", 
-              render: (v: Venta) => <strong>{v.articulos[0]?.articuloNombre || 'N/A'}</strong> 
+              render: (v: Venta) => <strong>{v.articulo?.nombre || 'N/A'}</strong> 
             },
             { 
               header: "Fecha", 
               render: (v: Venta) => {
-                const fecha = new Date(v.fecha);
+                const fecha = new Date(v.fechaVenta);
                 return fecha.toLocaleDateString('es-ES', {
                   day: '2-digit',
                   month: '2-digit',
@@ -214,7 +189,7 @@ const Ventas = () => {
                   fontSize: '0.875rem',
                   fontWeight: 'bold'
                 }}>
-                  {v.articulos[0]?.cantidad || 0}
+                  {v.cantidad}
                 </span>
               ) 
             },
@@ -222,7 +197,7 @@ const Ventas = () => {
               header: "Monto", 
               render: (v: Venta) => (
                 <strong style={{ color: '#28a745' }}>
-                  ${v.total.toLocaleString()}
+                  ${v.montoTotal?.toLocaleString() ?? 0}
                 </strong>
               ) 
             }

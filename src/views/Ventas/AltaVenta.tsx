@@ -1,160 +1,120 @@
 // 📁 src/views/Ventas/AltaVenta.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CampoTexto from '../../components/CampoText';
 import FormularioSeccion from '../../components/FormularioSeccion';
 import BotonAgregar from '../../components/BotonAgregar';
 import Notificacion from '../../components/Notificacion';
 import { MdInventory, MdShoppingCart } from 'react-icons/md';
+import ventaService from '../../services/venta.service.real';
+import articuloService from '../../services/articulo.service.real';
 
 interface Articulo {
-  id: string;
+  id: number;
+  codArticulo: number;
   nombre: string;
-  precio: number;
-  stock: number;
+  descripcion: string;
+  stockActual: number;
+  costoVenta: number;
 }
 
-// Datos simulados de artículos disponibles
-const articulosMock: Articulo[] = [
-  {
-    id: 'A001',
-    nombre: 'Mouse Logitech G502 HERO',
-    precio: 1500,
-    stock: 50
-  },
-  {
-    id: 'A002',
-    nombre: 'Teclado Mecánico Corsair K70',
-    precio: 3000,
-    stock: 0
-  },
-  {
-    id: 'A003',
-    nombre: 'Monitor LED 24" Samsung FHD',
-    precio: 25000,
-    stock: 15
-  },
-  {
-    id: 'A004',
-    nombre: 'Auriculares Bluetooth Sony WH-1000XM4',
-    precio: 8000,
-    stock: 0
-  },
-  {
-    id: 'A005',
-    nombre: 'Webcam HD Logitech C920',
-    precio: 12000,
-    stock: 8
-  },
-  {
-    id: 'A006',
-    nombre: 'SSD 1TB Samsung 970 EVO Plus',
-    precio: 9000,
-    stock: 25
-  },
-  {
-    id: 'A007',
-    nombre: 'Memoria RAM 16GB Kingston Fury',
-    precio: 12000,
-    stock: 40
-  },
-  {
-    id: 'A008',
-    nombre: 'Impresora Láser HP LaserJet Pro',
-    precio: 90000,
-    stock: 3
-  },
-  {
-    id: 'A009',
-    nombre: 'Fuente de Poder 750W EVGA',
-    precio: 13500,
-    stock: 12
-  },
-  {
-    id: 'A010',
-    nombre: 'Placa de Video RTX 4060 MSI',
-    precio: 400000,
-    stock: 2
-  },
-  {
-    id: 'A011',
-    nombre: 'Disco Duro 2TB Seagate Barracuda',
-    precio: 7500,
-    stock: 18
-  },
-  {
-    id: 'A012',
-    nombre: 'Router WiFi TP-Link Archer C7',
-    precio: 15000,
-    stock: 6
-  },
-  {
-    id: 'A013',
-    nombre: 'Micrófono USB Blue Yeti',
-    precio: 25000,
-    stock: 4
-  },
-  {
-    id: 'A014',
-    nombre: 'Tablet Samsung Galaxy Tab S7',
-    precio: 180000,
-    stock: 7
-  },
-  {
-    id: 'A015',
-    nombre: 'Cable HDMI 2.0 2m Premium',
-    precio: 800,
-    stock: 100
-  },
-  {
-    id: 'A016',
-    nombre: 'Laptop Dell Inspiron 15 3000',
-    precio: 350000,
-    stock: 5
-  },
-  {
-    id: 'A017',
-    nombre: 'Mouse Pad Gaming RGB',
-    precio: 2500,
-    stock: 0
-  },
-  {
-    id: 'A018',
-    nombre: 'Teclado Numérico USB',
-    precio: 1800,
-    stock: 22
-  },
-  {
-    id: 'A019',
-    nombre: 'Monitor 27" 4K LG UltraFine',
-    precio: 450000,
-    stock: 1
-  },
-  {
-    id: 'A020',
-    nombre: 'Auriculares Gaming Razer Kraken',
-    precio: 18000,
-    stock: 9
-  }
-];
-
 const AltaVenta = () => {
+  const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [articulo, setArticulo] = useState<Articulo | null>(null);
   const [cantidad, setCantidad] = useState(0);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const navigate = useNavigate();
 
-  const handleVenta = () => {
+  // Cargar artículos al montar el componente
+  useEffect(() => {
+    cargarArticulos();
+  }, []);
+
+  const cargarArticulos = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await articuloService.findAll();
+      setArticulos(response.content);
+      
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error cargando artículos';
+      setError(mensaje);
+      console.error('Error cargando artículos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVenta = async () => {
     if (!articulo || cantidad <= 0) {
       setError('Debe seleccionar un artículo y una cantidad válida');
       return;
     }
-    if (cantidad > articulo.stock) {
-      setError(`Solo se pueden vender un máximo de ${articulo.stock} unidades`);
+    
+    if (cantidad > articulo.stockActual) {
+      setError(`Solo se pueden vender un máximo de ${articulo.stockActual} unidades`);
       return;
     }
-    navigate('/ventas', { state: { mensaje: 'La venta se ha realizado exitosamente' } });
+
+    try {
+      setGuardando(true);
+      setError('');
+      
+      // Enviar solo articuloId y cantidad al backend
+      await ventaService.saveVenta({
+        articuloId: articulo.id,
+        cantidad: cantidad
+      });
+      
+      // Navegar de vuelta a la lista de ventas con mensaje de éxito
+      navigate('/ventas', { 
+        state: { 
+          mensaje: `Venta realizada exitosamente: ${articulo.nombre} x${cantidad}` 
+        } 
+      });
+      
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error al realizar la venta';
+      setError(mensaje);
+      console.error('Error realizando venta:', err);
+    } finally {
+      setGuardando(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        padding: '2rem', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minHeight: '50vh'
+      }}>
+        <div style={{ 
+          width: '50px', 
+          height: '50px', 
+          border: '4px solid #f3f3f3', 
+          borderTop: '4px solid #007bff', 
+          borderRadius: '50%', 
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }} />
+        <p>Cargando artículos...</p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '2rem', backgroundColor: '#f5f6fc', minHeight: '100vh' }}>
@@ -175,14 +135,17 @@ const AltaVenta = () => {
           <select 
             value={articulo?.id || ''} 
             onChange={(e) => {
-              const art = articulosMock.find(a => a.id === e.target.value);
+              const art = articulos.find(a => a.id === Number(e.target.value));
               setArticulo(art || null);
+              setCantidad(0); // Resetear cantidad al cambiar artículo
             }}
             style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '100%', maxWidth: '300px' }}
           >
             <option value="">Seleccionar artículo</option>
-            {articulosMock.map(art => (
-              <option key={art.id} value={art.id}>{art.nombre}</option>
+            {articulos.map(art => (
+              <option key={art.id} value={art.id}>
+                {art.nombre} - Stock: {art.stockActual}
+              </option>
             ))}
           </select>
         </div>
@@ -190,8 +153,9 @@ const AltaVenta = () => {
         {articulo && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
             <div>
-              <p><strong>Precio:</strong> ${articulo.precio}</p>
-              <p><strong>Unidades disponibles:</strong> {articulo.stock}</p>
+              <p><strong>Precio:</strong> ${articulo.costoVenta}</p>
+              <p><strong>Unidades disponibles:</strong> {articulo.stockActual}</p>
+              <p><strong>Descripción:</strong> {articulo.descripcion}</p>
             </div>
             <div>
               <CampoTexto
@@ -202,7 +166,7 @@ const AltaVenta = () => {
                 onChange={(e) => setCantidad(Number(e.target.value))}
                 placeholder="Ingrese cantidad"
               />
-              <p><strong>Total:</strong> ${cantidad * articulo.precio}</p>
+              <p><strong>Total:</strong> ${cantidad * articulo.costoVenta}</p>
             </div>
           </div>
         )}
@@ -215,7 +179,11 @@ const AltaVenta = () => {
       )}
 
       <div style={{ marginTop: '2rem' }}>
-        <BotonAgregar texto="Realizar venta" onClick={handleVenta} />
+        <BotonAgregar 
+          texto={guardando ? "Realizando venta..." : "Realizar venta"} 
+          onClick={handleVenta}
+          disabled={guardando}
+        />
       </div>
     </div>
   );

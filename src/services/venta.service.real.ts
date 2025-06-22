@@ -21,6 +21,12 @@ export interface Venta {
   observaciones?: string;
 }
 
+// Interfaz para crear una nueva venta (solo articuloId y cantidad)
+export interface VentaCreate {
+  articuloId: number;
+  cantidad: number;
+}
+
 class VentaServiceReal {
   async findAll(): Promise<Venta[]> {
     const response = await apiGet(API_ENDPOINTS.VENTAS);
@@ -35,7 +41,7 @@ class VentaServiceReal {
     return response.json();
   }
 
-  async saveVenta(venta: Omit<Venta, 'id'>): Promise<Venta> {
+  async saveVenta(venta: VentaCreate): Promise<Venta> {
     const response = await apiPost(API_ENDPOINTS.VENTAS, venta);
     if (!isSuccessfulResponse(response)) await handleApiError(response);
     return response.json();
