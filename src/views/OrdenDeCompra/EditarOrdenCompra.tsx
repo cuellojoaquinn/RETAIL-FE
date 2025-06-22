@@ -5,7 +5,7 @@ import CampoTexto from '../../components/CampoText';
 import { MdArrowBack, MdShoppingCart, MdWarning, MdCheckCircle, MdCancel, MdSend, MdRefresh, MdSchedule, MdEdit, MdPerson, MdInventory, MdDescription } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
 import ordenCompraService from '../../services/ordenCompra.service.real';
-import type { OrdenCompra } from '../../services/ordenCompra.service';
+import type { OrdenCompra } from '../../services/mocks/ordenCompra.service';
 
 interface Proveedor {
   id: number;

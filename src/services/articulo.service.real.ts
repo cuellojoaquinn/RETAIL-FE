@@ -62,12 +62,24 @@ export interface Page<T> {
 }
 
 export interface ArticuloDTO {
-  codArticulo: number;
+  codigo: number;
   nombre: string;
   descripcion: string;
   costoAlmacenamiento: number;
-  demandaArticulo: number;
+  demanda: number;
+  costoCompra: number;
   costoVenta: number;
+  stockActual: number;
+}
+
+export interface EditarArticuloDTO {
+  nombre: string;
+  descripcion: string;
+  demanda: number;
+  costoAlmacenamiento: number;
+  costoCompra: number;
+  costoVenta: number;
+  stockActual: number;
 }
 
 class ArticuloServiceReal {
@@ -115,7 +127,7 @@ class ArticuloServiceReal {
   }
 
   // PUT /articulos/{id} - Actualizar artículo
-  async updateArticulo(id: number, articuloData: Partial<Articulo>): Promise<Articulo> {
+  async updateArticulo(id: number, articuloData: EditarArticuloDTO): Promise<Articulo> {
     try {
       const response = await apiPut(API_ENDPOINTS.ARTICULO_BY_ID(id), articuloData);
       

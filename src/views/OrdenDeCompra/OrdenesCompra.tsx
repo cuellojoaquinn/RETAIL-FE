@@ -6,7 +6,7 @@ import Buscador from '../../components/Buscador';
 import FiltrosRapidos from '../../components/FiltrosRapidos';
 import TablaGenerica from '../../components/TablaGenerica';
 import ordenCompraService from '../../services/ordenCompra.service.real';
-import type { OrdenCompra } from '../../services/ordenCompra.service';
+import type { OrdenCompra } from '../../services/mocks/ordenCompra.service';
 import '../../styles/OrdenDeCompra.css';
 
 const OrdenesCompra = () => {

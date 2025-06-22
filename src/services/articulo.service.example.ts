@@ -1,8 +1,8 @@
 // 📁 src/services/articulo.service.example.ts
 // Ejemplo de uso del servicio de artículos
 
-import articuloService from './articulo.service';
-import type { Articulo } from './articulo.service';
+import articuloService from './mocks/articulo.service';
+import type { Articulo } from './mocks/articulo.service';
 
 // Ejemplo de uso del servicio de artículos
 export const ejemploUsoArticuloService = async () => {

@@ -21,9 +21,11 @@ const AltaArticulo = () => {
     costoAlmacenamiento: "",
     demanda: "",
     costoCompra: "",
+    costoVenta: "",
+    stockActual: "",
   });
   const [mensajeError, setMensajeError] = useState("");
-  
+  console.log("form", form);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -39,6 +41,8 @@ const AltaArticulo = () => {
       costoAlmacenamiento: "Costo de almacenamiento",
       demanda: "Demanda artículo",
       costoCompra: "Costo de compra",
+      costoVenta: "Costo de venta",
+      stockActual: "Stock actual",
     };
   
     const nuevosErrores: { [key: string]: boolean } = {};
@@ -61,12 +65,14 @@ const AltaArticulo = () => {
     setMensajeError("");
   
     const articuloDTO: ArticuloDTO = {
-      codArticulo: parseInt(form.codigo),
+      codigo: parseInt(form.codigo),
       nombre: form.nombre,
       descripcion: form.descripcion,
       costoAlmacenamiento: parseFloat(form.costoAlmacenamiento),
-      demandaArticulo: parseFloat(form.demanda),
-      costoVenta: parseFloat(form.costoCompra),
+      demanda: parseFloat(form.demanda),
+      costoCompra: parseFloat(form.costoCompra),
+      costoVenta: parseFloat(form.costoVenta),
+      stockActual: parseInt(form.stockActual),
     };
     
     
@@ -151,6 +157,26 @@ const AltaArticulo = () => {
             placeholder='Ingrese costo'
             required
             error={errores.costoCompra}
+          />
+          <CampoTexto
+            label='Costo de venta'
+            name='costoVenta'
+            type='number'
+            value={form.costoVenta}
+            onChange={handleChange}
+            placeholder='Ingrese costo'
+            required
+            error={errores.costoVenta}
+          />
+          <CampoTexto
+            label='Stock actual'
+            name='stockActual'
+            type='number'
+            value={form.stockActual}
+            onChange={handleChange}
+            placeholder='Ingrese stock inicial'
+            required
+            error={errores.stockActual}
           />
         </div>
         <BotonAgregar

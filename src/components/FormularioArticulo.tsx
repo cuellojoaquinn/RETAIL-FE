@@ -15,6 +15,8 @@ interface Articulo {
   costoAlmacenamiento: string;
   demanda: string;
   costoCompra: string;
+  costoVenta: string;
+  stockActual: string;
   proveedorPredeterminado?: string;
 }
 
@@ -33,6 +35,8 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
     costoAlmacenamiento: "",
     demanda: "",
     costoCompra: "",
+    costoVenta: "",
+    stockActual: "",
     proveedorPredeterminado: "",
   });
   const proveedores = [
@@ -73,6 +77,8 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
             costoAlmacenamiento: data.costoAlmacenamiento.toString(),
             demanda: data.demandaArticulo.toString(),
             costoCompra: data.costoVenta.toString(),
+            costoVenta: data.costoVenta.toString(),
+            stockActual: data.stockActual.toString(),
             proveedorPredeterminado: "",
           });
         } catch (err) {
@@ -101,6 +107,8 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
       costoAlmacenamiento: "Costo de almacenamiento",
       demanda: "Demanda",
       costoCompra: "Costo de compra",
+      costoVenta: "Costo de venta",
+      stockActual: "Stock actual",
     };
 
     const nuevosErrores: { [key: string]: boolean } = {};
@@ -192,6 +200,26 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
             placeholder='Ingrese costo'
             required
             error={errores.costoCompra}
+          />
+          <CampoTexto
+            label='Costo de venta'
+            name='costoVenta'
+            type='number'
+            value={form.costoVenta}
+            onChange={handleChange}
+            placeholder='Ingrese costo'
+            required
+            error={errores.costoVenta}
+          />
+          <CampoTexto
+            label='Stock actual'
+            name='stockActual'
+            type='number'
+            value={form.stockActual}
+            onChange={handleChange}
+            placeholder='Ingrese stock actual'
+            required
+            error={errores.stockActual}
           />
         </div>
       </FormularioSeccion>

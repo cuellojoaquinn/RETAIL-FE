@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MdArrowBack, MdWarning, MdDelete, MdShoppingCart, MdPerson, MdInventory } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
 import ordenCompraService from '../../services/ordenCompra.service.real';
-import type { OrdenCompra } from '../../services/ordenCompra.service';
+import type { OrdenCompra } from '../../services/mocks/ordenCompra.service';
 
 const EliminarOrdenCompra = () => {
   const navigate = useNavigate();

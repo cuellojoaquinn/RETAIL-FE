@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import FormularioArticulo from "../../components/FormularioArticulo";
-import { apiPut, API_ENDPOINTS, handleApiError } from "../../config/api";
-import articuloService from "../../services/articulo.service";
+import articuloServiceReal from "../../services/articulo.service.real";
+import type { EditarArticuloDTO } from "../../services/articulo.service.real";
 import { useEffect, useState } from "react";
 
 // Interfaz que coincide con la respuesta del endpoint real
@@ -46,31 +46,9 @@ const EditarArticulo = () => {
       setLoading(true);
       setError(null);
 
-      
-      const response = await articuloService.findById(parseInt(id));
+      const response = await articuloServiceReal.findById(parseInt(id));
       if (response) {
-        // Convertir la respuesta del servicio mock al formato del backend real
-        const articuloBackend: ArticuloBackend = {
-          id: response.id,
-          codArticulo: parseInt(response.codigo),
-          nombre: response.nombre,
-          descripcion: response.tipoModelo || "",
-          produccionDiaria: 0,
-          demandaArticulo: response.inventario,
-          costoAlmacenamiento: parseFloat(response.precio.replace('$', '')),
-          costoVenta: parseFloat(response.precio.replace('$', '')),
-          fechaBajaArticulo: response.estado === 'Inactivo' ? new Date().toISOString() : null,
-          puntoPedido: 0,
-          stockSeguridad: response.stockSeguridad,
-          inventarioMaximo: response.inventario,
-          loteOptimo: 0,
-          stockActual: response.inventario,
-          z: 0,
-          desviacionEstandar: 0,
-          proveedorPredeterminado: response.proveedorPredeterminadoId || null,
-          cgi: 0,
-        };
-        setArticulo(articuloBackend);
+        setArticulo(response);
       } else {
         setError("Artículo no encontrado");
       }
@@ -86,20 +64,18 @@ const EditarArticulo = () => {
   const handleGuardar = async (articuloActualizado: any) => {
     try {
       // Convertir el formato del formulario al formato esperado por el backend
-      const articuloParaEnviar = {
-        codArticulo: parseInt(articuloActualizado.codigo),
+      const articuloParaEnviar: EditarArticuloDTO = {
         nombre: articuloActualizado.nombre,
         descripcion: articuloActualizado.descripcion,
+        demanda: parseFloat(articuloActualizado.demanda),
         costoAlmacenamiento: parseFloat(articuloActualizado.costoAlmacenamiento),
-        demandaArticulo: parseFloat(articuloActualizado.demanda),
-        costoVenta: parseFloat(articuloActualizado.costoCompra),
+        costoCompra: parseFloat(articuloActualizado.costoCompra),
+        costoVenta: parseFloat(articuloActualizado.costoVenta),
+        stockActual: parseInt(articuloActualizado.stockActual),
       };
+      
       console.log("articuloParaEnviar", articuloParaEnviar);
-      const res = await apiPut(API_ENDPOINTS.ARTICULO_BY_ID(id!), articuloParaEnviar);
-
-      if (!res.ok) {
-        await handleApiError(res);
-      }
+      await articuloServiceReal.updateArticulo(parseInt(id!), articuloParaEnviar);
 
       alert("Artículo actualizado correctamente");
       navigate("/articulos");
