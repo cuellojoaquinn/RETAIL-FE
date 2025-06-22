@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Buscador from '../../components/Buscador';
 import TablaGenerica from '../../components/TablaGenerica';
 import BotonAgregar from '../../components/BotonAgregar';
 import Notificacion from '../../components/Notificacion';
 import CampoTexto from '../../components/CampoText';
-import { MdEdit, MdDelete, MdSave, MdClose } from 'react-icons/md';
-import proveedorService from '../../services/proveedor.service.real';
-import type { Proveedor, ArticuloProveedor } from '../../services/proveedor.service.real';
+import { MdEdit, MdClose } from 'react-icons/md';
+import proveedorService, { type ProveedorBackend, type ArticuloProveedor } from '../../services/proveedor.service.real';
 
 interface Articulo {
   nombre: string;
@@ -27,9 +26,9 @@ interface ErrorModal {
 }
 
 const Proveedores = () => {
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [proveedoresFiltrados, setProveedoresFiltrados] = useState<Proveedor[]>([]);
-  const [proveedorSeleccionado, setProveedorSeleccionado] = useState<Proveedor | null>(null);
+  const [proveedores, setProveedores] = useState<ProveedorBackend[]>([]);
+  const [proveedoresFiltrados, setProveedoresFiltrados] = useState<ProveedorBackend[]>([]);
+  const [proveedorSeleccionado, setProveedorSeleccionado] = useState<ProveedorBackend | null>(null);
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [articuloEnEdicion, setArticuloEnEdicion] = useState<Articulo | null>(null);
   const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
@@ -40,25 +39,20 @@ const Proveedores = () => {
   const [busqueda, setBusqueda] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   
-  // Estados para edición
-  const [mostrarModalEdicion, setMostrarModalEdicion] = useState(false);
-  const [articuloAEditar, setArticuloAEditar] = useState<Articulo | null>(null);
-  const [formularioEdicion, setFormularioEdicion] = useState({
-    tipoModelo: '',
-    demoraEntrega: '',
-    costoUnidad: '',
-    costoPedido: '',
-    tiempoRevision: '',
-    esPredeterminado: false
-  });
-  const [erroresEdicion, setErroresEdicion] = useState<{ [field: string]: boolean }>({});
-  
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Cargar proveedores al montar el componente
   useEffect(() => {
     cargarProveedores();
-  }, []);
+    
+    if (location.state?.mensaje) {
+      // Mostrar mensaje de éxito si viene de otra página
+      setTimeout(() => {
+        // Limpiar el mensaje después de 5 segundos
+        navigate(location.pathname, { replace: true });
+      }, 5000);
+    }
+  }, [location.state?.mensaje]);
 
   const cargarProveedores = async () => {
     try {
@@ -87,20 +81,28 @@ const Proveedores = () => {
 
   const cargarArticulosProveedor = async (proveedorId: number) => {
     try {
+      setError('');
       const articulosData = await proveedorService.getArticulosPorProveedor(proveedorId);
-      // Convertir ArticuloProveedor a Articulo para mantener compatibilidad
-      const articulosConvertidos: Articulo[] = articulosData.map(ap => ({
-        nombre: ap.nombre,
-        codArticulo: ap.codigo,
-        tipoModelo: 'Lote fijo', // Valor por defecto
-        demoraEntrega: '5', // Valor por defecto
-        costoUnidad: ap.precio,
-        costoPedido: 100, // Valor por defecto
-        tiempoRevision: '30', // Valor por defecto
-        esPredeterminado: ap.esPredeterminado
+      
+      console.log('Artículos recibidos del backend:', articulosData);
+      
+      // Transformar los datos al formato esperado por la tabla
+      const articulosTransformados: Articulo[] = articulosData.map(art => ({
+        nombre: art.nombreArticulo || art.nombre || 'Sin nombre',
+        codArticulo: art.codigo || art.articuloId?.toString() || 'Sin código',
+        tipoModelo: art.tipoModelo || 'EOQ',
+        demoraEntrega: art.demoraEntrega?.toString() || '0',
+        costoUnidad: art.precioUnitario || art.precio || 0,
+        costoPedido: art.cargosPedido || 0,
+        tiempoRevision: art.tiempoRevision?.toString() || '0',
+        esPredeterminado: art.esPredeterminado
       }));
-      setArticulos(articulosConvertidos);
+      
+      console.log('Artículos transformados:', articulosTransformados);
+      setArticulos(articulosTransformados);
     } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error cargando artículos del proveedor';
+      setError(mensaje);
       console.error('Error cargando artículos del proveedor:', err);
       setArticulos([]);
     }
@@ -119,123 +121,12 @@ const Proveedores = () => {
     }
   }, [busqueda, proveedores]);
 
-  const confirmarEliminacion = () => {
-    if (!articuloAEliminar) return;
-
-    const { codArticulo } = articuloAEliminar;
-
-    // Simulación de errores por codArticulo específico
-    if (codArticulo === 'A001') {
-      setErrorModal({
-        tipo: 'orden',
-        titulo: 'Orden de compra',
-        subtitulo: 'Estado: Pendiente'
-      });
-    } else if (codArticulo === 'A002') {
-      setErrorModal({
-        tipo: 'inventario',
-        titulo: 'Inventario',
-        subtitulo: 'Hay artículos en el inventario'
-      });
-    } else {
-      setArticulos(prev => prev.filter(a => a.codArticulo !== codArticulo));
-    }
-
-    setMostrarModalEliminacion(false);
-  };
-
   const cerrarErrorModal = () => setErrorModal(null);
 
   const limpiarBusqueda = () => {
     setBusqueda('');
     setProveedorSeleccionado(null);
-  };
-
-  // Funciones para edición
-  const abrirModalEdicion = (articulo: Articulo) => {
-    setArticuloAEditar(articulo);
-    setFormularioEdicion({
-      tipoModelo: articulo.tipoModelo,
-      demoraEntrega: articulo.demoraEntrega,
-      costoUnidad: articulo.costoUnidad.toString(),
-      costoPedido: articulo.costoPedido.toString(),
-      tiempoRevision: articulo.tiempoRevision,
-      esPredeterminado: articulo.esPredeterminado || false
-    });
-    setErroresEdicion({});
-    setMostrarModalEdicion(true);
-  };
-
-  const cerrarModalEdicion = () => {
-    setMostrarModalEdicion(false);
-    setArticuloAEditar(null);
-    setFormularioEdicion({
-      tipoModelo: '',
-      demoraEntrega: '',
-      costoUnidad: '',
-      costoPedido: '',
-      tiempoRevision: '',
-      esPredeterminado: false
-    });
-    setErroresEdicion({});
-  };
-
-  const handleCambioEdicion = (campo: string, valor: any) => {
-    setFormularioEdicion(prev => ({ ...prev, [campo]: valor }));
-    // Limpiar error al corregir
-    if (erroresEdicion[campo]) {
-      setErroresEdicion(prev => {
-        const nuevosErrores = { ...prev };
-        delete nuevosErrores[campo];
-        return nuevosErrores;
-      });
-    }
-  };
-
-  const validarFormularioEdicion = (): boolean => {
-    const errores: { [field: string]: boolean } = {};
-
-    if (!formularioEdicion.tipoModelo) {
-      errores.tipoModelo = true;
-    }
-    if (!formularioEdicion.demoraEntrega || isNaN(Number(formularioEdicion.demoraEntrega)) || Number(formularioEdicion.demoraEntrega) <= 0) {
-      errores.demoraEntrega = true;
-    }
-    if (!formularioEdicion.costoUnidad || isNaN(Number(formularioEdicion.costoUnidad)) || Number(formularioEdicion.costoUnidad) <= 0) {
-      errores.costoUnidad = true;
-    }
-    if (!formularioEdicion.costoPedido || isNaN(Number(formularioEdicion.costoPedido)) || Number(formularioEdicion.costoPedido) < 0) {
-      errores.costoPedido = true;
-    }
-    if (!formularioEdicion.tiempoRevision || isNaN(Number(formularioEdicion.tiempoRevision)) || Number(formularioEdicion.tiempoRevision) <= 0) {
-      errores.tiempoRevision = true;
-    }
-
-    setErroresEdicion(errores);
-    return Object.keys(errores).length === 0;
-  };
-
-  const guardarEdicion = () => {
-    if (!validarFormularioEdicion() || !articuloAEditar || !proveedorSeleccionado) {
-      return;
-    }
-
-    // Actualizar el artículo en el estado local
-    const articuloActualizado: Articulo = {
-      ...articuloAEditar,
-      tipoModelo: formularioEdicion.tipoModelo,
-      demoraEntrega: formularioEdicion.demoraEntrega,
-      costoUnidad: Number(formularioEdicion.costoUnidad),
-      costoPedido: Number(formularioEdicion.costoPedido),
-      tiempoRevision: formularioEdicion.tiempoRevision,
-      esPredeterminado: formularioEdicion.esPredeterminado
-    };
-
-    setArticulos(prev => prev.map(art => 
-      art.codArticulo === articuloAEditar.codArticulo ? articuloActualizado : art
-    ));
-
-    cerrarModalEdicion();
+    setArticulos([]);
   };
 
   return (
@@ -248,6 +139,12 @@ const Proveedores = () => {
       {error && (
         <div style={{ marginBottom: '1rem' }}>
           <Notificacion tipo='error' mensaje={error} />
+        </div>
+      )}
+
+      {location.state?.mensaje && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Notificacion tipo='exito' mensaje={location.state.mensaje} />
         </div>
       )}
 
@@ -339,7 +236,10 @@ const Proveedores = () => {
                 {proveedoresFiltrados.map(prov => (
                   <button
                     key={prov.id}
-                    onClick={() => setProveedorSeleccionado(prov)}
+                    onClick={() => {
+                      setProveedorSeleccionado(prov);
+                      cargarArticulosProveedor(prov.id);
+                    }}
                     style={{
                       padding: '0.75rem 1.5rem',
                       backgroundColor: proveedorSeleccionado?.id === prov.id ? '#5b3cc4' : '#fff',
@@ -359,51 +259,41 @@ const Proveedores = () => {
 
           {proveedorSeleccionado && (
             <div style={{ marginBottom: '2rem' }}>
-              <h3>Artículos de {proveedorSeleccionado.nombre}:</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3>Artículos del proveedor: {proveedorSeleccionado.nombre}</h3>
+                <button
+                  onClick={() => navigate(`/proveedores/editar/${proveedorSeleccionado.id}`)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <MdEdit /> Editar Proveedor
+                </button>
+              </div>
+              
               {articulos.length === 0 ? (
-                <p style={{ color: '#666', fontStyle: 'italic' }}>
-                  Este proveedor no tiene artículos asociados
-                </p>
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '2rem',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <p style={{ color: '#6c757d', margin: 0 }}>
+                    Este proveedor no tiene artículos asignados.
+                  </p>
+                </div>
               ) : (
                 <TablaGenerica
-                  datos={articulos.map((a) => ({
-                    ...a,
-                    acciones: (
-                      <>
-                        <button 
-                          onClick={() => abrirModalEdicion(a)}
-                          style={{ 
-                            padding: '0.25rem 0.5rem', 
-                            marginRight: '0.5rem',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          <MdEdit style={{ marginRight: '0.25rem' }} />
-                          Editar
-                        </button>
-                        <button 
-                          onClick={() => { setMostrarModalEliminacion(true); setArticuloAEliminar(a); }}
-                          style={{ 
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          <MdDelete style={{ marginRight: '0.25rem' }} />
-                          Eliminar
-                        </button>
-                      </>
-                    )
-                  }))}
+                  datos={articulos}
                   columnas={[
                     { header: "Nombre", render: (a: any) => a.nombre },
                     { header: "Código", render: (a: any) => a.codArticulo },
@@ -418,162 +308,29 @@ const Proveedores = () => {
                       </span>
                     ) : (
                       <span style={{ color: '#666', fontSize: '0.8rem' }}>No</span>
-                    )},
-                    { header: "Acciones", render: (a: any) => a.acciones }
+                    )}
                   ]}
                 />
               )}
             </div>
           )}
 
-          {/* Modal de eliminación */}
-          {mostrarModalEliminacion && (
+          {/* Modal de error */}
+          {errorModal && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-              <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px', width: '90%' }}>
-                <h3 style={{ marginTop: 0 }}>Confirmar eliminación</h3>
-                <p>¿Desea eliminar el artículo "{articuloAEliminar?.nombre}" del proveedor: "{proveedorSeleccionado?.nombre}"?</p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0, color: errorModal.tipo === 'error' ? '#dc3545' : '#28a745' }}>
+                    {errorModal.titulo}
+                  </h3>
                   <button 
-                    onClick={() => setMostrarModalEliminacion(false)}
-                    style={{ padding: '0.5rem 1rem', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={confirmarEliminacion}
-                    style={{ padding: '0.5rem 1rem', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de edición */}
-          {mostrarModalEdicion && articuloAEditar && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-              <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ margin: 0 }}>Editar artículo</h3>
-                  <button 
-                    onClick={cerrarModalEdicion}
+                    onClick={cerrarErrorModal}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: '#666' }}
                   >
                     <MdClose />
                   </button>
                 </div>
-                
-                <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>{articuloAEditar.nombre}</p>
-                  <p style={{ margin: '0.25rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
-                    Código: {articuloAEditar.codArticulo} • Proveedor: {proveedorSeleccionado?.nombre}
-                  </p>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Tipo de modelo</label>
-                    <select 
-                      value={formularioEdicion.tipoModelo} 
-                      onChange={(e) => handleCambioEdicion('tipoModelo', e.target.value)}
-                      style={{ 
-                        width: '100%', 
-                        padding: '0.5rem', 
-                        borderRadius: '4px', 
-                        border: erroresEdicion.tipoModelo ? '1px solid #dc3545' : '1px solid #ccc' 
-                      }}
-                    >
-                      <option value="">Seleccionar</option>
-                      <option value="Lote fijo">Lote fijo</option>
-                      <option value="Intervalo fijo">Intervalo fijo</option>
-                    </select>
-                  </div>
-
-                  <CampoTexto 
-                    label="Demora de entrega (días)" 
-                    name="demoraEntrega" 
-                    value={formularioEdicion.demoraEntrega} 
-                    onChange={(e) => handleCambioEdicion('demoraEntrega', e.target.value)} 
-                    type="number" 
-                    error={erroresEdicion.demoraEntrega}
-                  />
-                  
-                  <CampoTexto 
-                    label="Precio unitario ($)" 
-                    name="costoUnidad" 
-                    value={formularioEdicion.costoUnidad} 
-                    onChange={(e) => handleCambioEdicion('costoUnidad', e.target.value)} 
-                    type="number" 
-                    error={erroresEdicion.costoUnidad}
-                  />
-                  
-                  <CampoTexto 
-                    label="Cargos de pedido ($)" 
-                    name="costoPedido" 
-                    value={formularioEdicion.costoPedido} 
-                    onChange={(e) => handleCambioEdicion('costoPedido', e.target.value)} 
-                    type="number" 
-                    error={erroresEdicion.costoPedido}
-                  />
-                  
-                  <CampoTexto 
-                    label="Tiempo de revisión (días)" 
-                    name="tiempoRevision" 
-                    value={formularioEdicion.tiempoRevision} 
-                    onChange={(e) => handleCambioEdicion('tiempoRevision', e.target.value)} 
-                    type="number" 
-                    error={erroresEdicion.tiempoRevision}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={formularioEdicion.esPredeterminado}
-                      onChange={(e) => handleCambioEdicion('esPredeterminado', e.target.checked)}
-                      style={{ marginRight: '0.5rem' }}
-                    />
-                    Marcar como proveedor predeterminado para este artículo
-                  </label>
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                  <button 
-                    onClick={cerrarModalEdicion}
-                    style={{ padding: '0.5rem 1rem', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={guardarEdicion}
-                    style={{ padding: '0.5rem 1rem', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    <MdSave style={{ marginRight: '0.25rem' }} />
-                    Guardar cambios
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de error */}
-          {errorModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-              <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '400px', width: '90%' }}>
-                <h3 style={{ marginTop: 0, color: '#dc3545' }}>No se pudo efectuar la acción</h3>
-                <p>Revisar:</p>
-                <div style={{ border: '1px solid #ccc', padding: '1rem', margin: '1rem 0', backgroundColor: '#f8f9fa' }}>
-                  <strong>{errorModal.titulo}</strong>
-                  <p style={{ margin: '0.5rem 0 0 0' }}>{errorModal.subtitulo}</p>
-                </div>
-                <button 
-                  onClick={cerrarErrorModal}
-                  style={{ padding: '0.5rem 1rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Entendido
-                </button>
+                <p style={{ margin: 0, color: '#666' }}>{errorModal.subtitulo}</p>
               </div>
             </div>
           )}

@@ -46,8 +46,13 @@ const EditarArticulo = () => {
       setLoading(true);
       setError(null);
 
+      console.log('Cargando artículo con ID:', id);
       const response = await articuloServiceReal.findById(parseInt(id));
+      console.log('Respuesta del backend:', response);
+      
       if (response) {
+        console.log('Proveedor predeterminado en respuesta:', response.proveedorPredeterminado);
+        console.log('Tipo de proveedorPredeterminado:', typeof response.proveedorPredeterminado);
         setArticulo(response);
       } else {
         setError("Artículo no encontrado");
@@ -74,6 +79,7 @@ const EditarArticulo = () => {
         produccionDiaria: parseInt(articuloActualizado.produccionDiaria),
         z: parseInt(articuloActualizado.z),
         desviacionEstandar: parseInt(articuloActualizado.desviacionEstandar),
+        proveedorPredeterminado: articuloActualizado.proveedorPredeterminado ? parseInt(articuloActualizado.proveedorPredeterminado) : null,
       };
       
       console.log("articuloParaEnviar", articuloParaEnviar);
@@ -157,7 +163,7 @@ const EditarArticulo = () => {
           &gt; Editar artículo
         </h1>
       </div>
-
+      
       {articulo && (
         <FormularioArticulo
           datosIniciales={articulo}

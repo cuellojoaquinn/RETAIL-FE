@@ -84,6 +84,7 @@ export interface EditarArticuloDTO {
   produccionDiaria: number;
   z: number;
   desviacionEstandar: number;
+  proveedorPredeterminado?: number | null;
 }
 
 export interface CrearArticuloDTO {
@@ -206,17 +207,30 @@ class ArticuloServiceReal {
   }
 
   // PUT /articulos/{id}/proveedor-predeterminado - Establecer proveedor predeterminado
-  async setProveedorPredeterminado(id: number, proveedorId?: number): Promise<Articulo> {
+  async setProveedorPredeterminado(id: number, proveedorId?: number): Promise<Articulo | void> {
     try {
-      const response = await apiPut(`${API_ENDPOINTS.ARTICULO_BY_ID(id)}/proveedor-predeterminado`, {
-        proveedorId
-      });
+      const payload = { proveedorId };
+      console.log('Enviando payload a setProveedorPredeterminado:', payload);
+      
+      const response = await apiPut(`${API_ENDPOINTS.ARTICULO_BY_ID(id)}/proveedor-predeterminado`, payload);
       
       if (!isSuccessfulResponse(response)) {
         await handleApiError(response);
       }
       
-      return await response.json();
+      const text = await response.text();
+      if (!text) {
+        return; // Éxito si la respuesta está vacía
+      }
+
+      try {
+        // Intenta parsear como JSON
+        return JSON.parse(text) as Articulo;
+      } catch (e) {
+        // Si falla, asume que es un mensaje de texto de éxito
+        console.log("Respuesta no es JSON, pero se considera éxito:", text);
+        return;
+      }
     } catch (error) {
       console.error('Error estableciendo proveedor predeterminado:', error);
       throw error;
