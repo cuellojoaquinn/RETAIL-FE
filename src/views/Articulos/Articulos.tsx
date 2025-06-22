@@ -8,7 +8,8 @@ import TablaGenerica from "../../components/TablaGenerica";
 import { useNavigate } from "react-router-dom";
 import FiltrosRapidos from "../../components/FiltrosRapidos";
 import articuloService from "../../services/articulo.service.real";
-import type { Articulo } from "../../services/articulo.service";
+import type { Articulo } from "../../services/articulo.service.real";
+import Notificacion from "../../components/Notificacion";
 
 interface OrdenCompra {
   id: number;
@@ -55,7 +56,8 @@ const Articulos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
+  const [articulosFiltrados, setArticulosFiltrados] = useState<Articulo[]>([]);
   const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
   const [articuloAEliminar, setArticuloAEliminar] = useState<Articulo | null>(null);
   const [eliminando, setEliminando] = useState(false);
@@ -78,11 +80,13 @@ const Articulos = () => {
       
       const response = await articuloService.findAll(pagina, tamañoPagina);
       setArticulos(response.content);
+      setArticulosFiltrados(response.content);
       setTotalElementos(response.totalElements);
       setTotalPaginas(response.totalPages);
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando artículos');
+      const mensaje = err instanceof Error ? err.message : 'Error cargando artículos';
+      setError(mensaje);
       console.error('Error cargando artículos:', err);
     } finally {
       setLoading(false);
@@ -94,60 +98,46 @@ const Articulos = () => {
     setBusqueda(termino);
     
     if (!termino.trim()) {
-      cargarArticulos();
+      setArticulosFiltrados(articulos);
       return;
     }
 
     try {
-      setLoading(true);
       const resultados = await articuloService.searchArticulos(termino);
-      setArticulos(resultados);
-      setTotalElementos(resultados.length);
-      setTotalPaginas(1);
+      setArticulosFiltrados(resultados);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error en la búsqueda');
-    } finally {
-      setLoading(false);
+      console.error('Error buscando artículos:', err);
+      // Si falla la búsqueda, mostrar todos los artículos
+      setArticulosFiltrados(articulos);
     }
   };
-
-  // Filtrar artículos (solo cuando no se usan filtros rápidos)
-  const articulosFiltrados = articulos.filter((articulo) => {
-    // Si el filtroEstado es un filtro rápido, no aplicar filtros adicionales
-    if (filtroEstado === "A reponer" || filtroEstado === "Faltantes") {
-      return true; // Mostrar todos los artículos que ya vienen filtrados del servicio
-    }
-    
-    const cumpleEstado = filtroEstado === "Todos" || articulo.estado === filtroEstado;
-    return cumpleEstado;
-  });
 
   // Manejar filtros rápidos
   const handleFiltroRapido = async (filtro: string) => {
     setFiltroEstado(filtro);
     
+    if (!filtro) {
+      setArticulosFiltrados(articulos);
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError(null);
+      let resultados: Articulo[] = [];
       
-      if (filtro === "Todos") {
-        await cargarArticulos();
-      } else if (filtro === "A reponer") {
-        const articulosAReponer = await articuloService.getArticulosAReponer();
-        setArticulos(articulosAReponer);
-        setTotalElementos(articulosAReponer.length);
-        setTotalPaginas(1);
-      } else if (filtro === "Faltantes") {
-        const articulosFaltantes = await articuloService.getArticulosFaltantes();
-        setArticulos(articulosFaltantes);
-        setTotalElementos(articulosFaltantes.length);
-        setTotalPaginas(1);
+      if (filtro === 'Activo') {
+        resultados = articulos.filter(a => !a.fechaBajaArticulo);
+      } else if (filtro === 'Inactivo') {
+        resultados = articulos.filter(a => a.fechaBajaArticulo);
+      } else if (filtro === 'Sin Stock') {
+        resultados = await articuloService.getArticulosFaltantes();
+      } else if (filtro === 'A Reponer') {
+        resultados = await articuloService.getArticulosAReponer();
       }
       
+      setArticulosFiltrados(resultados);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando artículos');
-    } finally {
-      setLoading(false);
+      console.error('Error aplicando filtro:', err);
+      setArticulosFiltrados(articulos);
     }
   };
 
@@ -156,12 +146,13 @@ const Articulos = () => {
   };
 
   const handleEditar = (id: number) => {
+    console.log("id", id);
     navigate(`/articulos/editar/${id}`);
   };
 
   const verificarEliminacion = (articulo: Articulo) => {
     // Verificar si tiene inventario
-    if (articulo.inventario > 0) {
+    if (articulo.stockActual > 0) {
       setArticuloAEliminar(articulo);
       setMostrarModalEliminacion(true);
       return;
@@ -170,7 +161,7 @@ const Articulos = () => {
     // Verificar si tiene órdenes de compra pendientes
     const ordenesPendientes = ordenesCompraMock.filter(
       (orden) =>
-        orden.codigoArticulo === articulo.codigo &&
+        orden.codigoArticulo === articulo.codArticulo.toString() &&
         (orden.estado === "Pendiente" || orden.estado === "En proceso")
     );
 
@@ -196,9 +187,21 @@ const Articulos = () => {
       setMostrarModalEliminacion(false);
       setArticuloAEliminar(null);
       
+      // Mostrar mensaje de éxito
+      alert("Artículo eliminado correctamente");
+      
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error al eliminar el artículo';
-      setError(mensaje);
+      
+      // Mostrar alerta específica según el tipo de error
+      if (mensaje.includes('inventario') || mensaje.includes('stock')) {
+        alert(`No se puede eliminar el artículo "${articulo.nombre}" porque tiene ${articulo.stockActual} unidades en inventario.`);
+      } else if (mensaje.includes('orden') || mensaje.includes('compra')) {
+        alert(`No se puede eliminar el artículo "${articulo.nombre}" porque tiene órdenes de compra pendientes.`);
+      } else {
+        alert(mensaje);
+      }
+      
       console.error('Error eliminando artículo:', err);
     } finally {
       setEliminando(false);
@@ -215,28 +218,6 @@ const Articulos = () => {
     setMostrarModalEliminacion(false);
     setArticuloAEliminar(null);
   };
-
-  // Obtener estadísticas
-  const [estadisticas, setEstadisticas] = useState({
-    total: 0,
-    activos: 0,
-    inactivos: 0,
-    sinStock: 0,
-    aReponer: 0
-  });
-
-  useEffect(() => {
-    const cargarEstadisticas = async () => {
-      try {
-        const stats = await articuloService.getEstadisticas();
-        setEstadisticas(stats);
-      } catch (err) {
-        console.error('Error cargando estadísticas:', err);
-      }
-    };
-
-    cargarEstadisticas();
-  }, []);
 
   // Obtener artículos a reponer
   const [articulosAReponer, setArticulosAReponer] = useState<Articulo[]>([]);
@@ -257,14 +238,15 @@ const Articulos = () => {
   // Preparar datos para la tabla
   const datosTabla = articulosFiltrados.map((articulo) => ({
     id: articulo.id,
-    codigo: articulo.codigo,
+    codArticulo: articulo.codArticulo,
     nombre: articulo.nombre,
-    estado: articulo.estado,
-    proveedor: articulo.proveedor,
-    precio: articulo.precio,
-    inventario: articulo.inventario,
+    descripcion: articulo.descripcion,
+    estado: articulo.fechaBajaArticulo ? 'Inactivo' : 'Activo',
+    costoVenta: articulo.costoVenta,
+    stockActual: articulo.stockActual,
     stockSeguridad: articulo.stockSeguridad,
-    tipoModelo: articulo.tipoModelo,
+    demandaArticulo: articulo.demandaArticulo,
+    costoAlmacenamiento: articulo.costoAlmacenamiento,
   }));
 
   if (loading && articulos.length === 0) {
@@ -329,56 +311,11 @@ const Articulos = () => {
     <div className='articulos-container'>
       <h1>Artículos</h1>
       
-      {/* Estadísticas */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '2rem' 
-      }}>
-        <div style={{ 
-          backgroundColor: '#e3f2fd', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#1976d2' }}>Total</h3>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{estadisticas.total}</p>
-        </div>
-        <div style={{ 
-          backgroundColor: '#e8f5e8', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#2e7d32' }}>Activos</h3>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{estadisticas.activos}</p>
-        </div>
-        <div style={{ 
-          backgroundColor: '#fff3e0', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#f57c00' }}>A Reponer</h3>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{estadisticas.aReponer}</p>
-        </div>
-        <div style={{ 
-          backgroundColor: '#ffebee', 
-          padding: '1rem', 
-          borderRadius: '8px', 
-          textAlign: 'center' 
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#d32f2f' }}>Sin Stock</h3>
-          <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>{estadisticas.sinStock}</p>
-        </div>
-      </div>
-
       <div className='articulos-header'>
         <Buscador value={busqueda} onChange={handleBuscar} placeholder="Buscar artículos..." />
         <div className='articulos-header'>
           <FiltrosRapidos
-            activo={filtroEstado}
+            activo={filtroEstado || "Todos"}
             onSeleccionar={handleFiltroRapido}
           />
         </div>
@@ -410,37 +347,39 @@ const Articulos = () => {
         <TablaGenerica
           datos={articulosFiltrados}
           columnas={[
-            { header: "Código", render: (a) => <strong>{a.codigo}</strong> },
-            { header: "Nombre", render: (a) => <strong>{a.nombre}</strong> },
+            { header: "Código", render: (a) => <strong>{a.codArticulo || 'Sin código'}</strong> },
+            { header: "Nombre", render: (a) => <strong>{a.nombre || 'Sin nombre'}</strong> },
+            { header: "Descripción", render: (a) => <span>{a.descripcion || 'Sin descripción'}</span> },
             {
               header: "Estado",
               render: (a) => (
-                <span className={`estado ${a.estado.toLowerCase()}`}>
-                  {a.estado}
+                <span className={`estado ${a.fechaBajaArticulo ? 'inactivo' : 'activo'}`}>
+                  {a.fechaBajaArticulo ? 'Inactivo' : 'Activo'}
                 </span>
               ),
             },
-            { header: "Precio", render: (a) => `$${a.precio.toLocaleString()}` },
+            { header: "Precio", render: (a) => `$${(a.costoVenta || 0).toLocaleString()}` },
             { 
               header: "Inventario", 
               render: (a) => (
                 <span style={{ 
-                  color: a.inventario <= a.stockSeguridad ? '#dc3545' : 
-                         a.inventario === 0 ? '#ffc107' : '#28a745',
+                  color: (a.stockActual || 0) <= (a.stockSeguridad || 0) ? '#dc3545' : 
+                         (a.stockActual || 0) === 0 ? '#ffc107' : '#28a745',
                   fontWeight: 'bold'
                 }}>
-                  {a.inventario}
+                  {a.stockActual || 0}
                 </span>
               ) 
             },
-            { header: "Stock de seguridad", render: (a) => a.stockSeguridad },
-            { header: "Tipo de Modelo", render: (a) => a.tipoModelo },
-            { header: "Proveedor", render: (a) => a.proveedor || 'Sin proveedor' },
+            { header: "Stock de seguridad", render: (a) => a.stockSeguridad || 0 },
+            { header: "Demanda", render: (a) => (a.demandaArticulo || 0).toLocaleString() },
+            { header: "Costo almacenamiento", render: (a) => `$${(a.costoAlmacenamiento || 0).toFixed(2)}` },
           ]}
           onEditar={(a) => handleEditar(a.id)}
           onEliminar={(a) => verificarEliminacion(a)}
         />
       </div>
+      
 
       {/* Paginación */}
       {totalPaginas > 1 && (
@@ -525,7 +464,7 @@ const Articulos = () => {
                 </p>
 
                 {/* Verificar inventario */}
-                {articuloAEliminar.inventario > 0 && (
+                {articuloAEliminar.stockActual > 0 && (
                   <div style={{ 
                     backgroundColor: '#f8f9fa', 
                     padding: '1rem', 
@@ -538,7 +477,7 @@ const Articulos = () => {
                       <strong>Inventario disponible:</strong>
                     </div>
                     <p style={{ margin: '0.25rem 0' }}>
-                      • Unidades en inventario: <strong>{articuloAEliminar.inventario}</strong>
+                      • Unidades en inventario: <strong>{articuloAEliminar.stockActual}</strong>
                     </p>
                     <p style={{ margin: '0.25rem 0' }}>
                       • Stock de seguridad: <strong>{articuloAEliminar.stockSeguridad}</strong>
@@ -553,7 +492,7 @@ const Articulos = () => {
                 {(() => {
                   const ordenesPendientes = ordenesCompraMock.filter(
                     (orden) =>
-                      orden.codigoArticulo === articuloAEliminar.codigo &&
+                      orden.codigoArticulo === articuloAEliminar.codArticulo.toString() &&
                       (orden.estado === "Pendiente" || orden.estado === "En proceso")
                   );
 

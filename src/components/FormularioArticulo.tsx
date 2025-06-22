@@ -43,25 +43,47 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
   const [errores, setErrores] = useState<{ [key: string]: boolean }>({});
   const [mensajeError, setMensajeError] = useState<string | null>(null);
 
-  // useEffect(() => {
-  //   if (modo === "edicion" && codigoArticulo) {
-  //     const obtenerArticulo = async () => {
-  //       try {
-  //         const res = await apiGet(API_ENDPOINTS.ARTICULO_BY_ID(codigoArticulo));
-  //         if (!res.ok) {
-  //           await handleApiError(res);
-  //         }
-  //         const data = await res.json();
-  //         setForm(data);
-  //       } catch (err) {
-  //         console.error("Error al obtener artículo:", err);
-  //         setMensajeError("No se pudo cargar la información del artículo.");
-  //       }
-  //     };
+  // Cargar datos del artículo cuando está en modo edición
+  useEffect(() => {
+    if (modo === "edicion" && codigoArticulo) {
+      console.log("FormularioArticulo - codigoArticulo recibido:", codigoArticulo);
+      console.log("FormularioArticulo - tipo:", typeof codigoArticulo);
+      
+      // Validar que el código sea un número válido
+      const codigoNumero = parseInt(codigoArticulo);
+      if (isNaN(codigoNumero)) {
+        console.error("FormularioArticulo - código inválido:", codigoArticulo);
+        setMensajeError("Código de artículo inválido");
+        return;
+      }
+      
+      const obtenerArticulo = async () => {
+        try {
+          const res = await apiGet(API_ENDPOINTS.ARTICULO_BY_ID(codigoNumero));
+          if (!res.ok) {
+            await handleApiError(res);
+          }
+          const data = await res.json();
+          
+          // Mapear la respuesta del backend al formato del formulario
+          setForm({
+            codigo: data.codArticulo.toString(),
+            nombre: data.nombre,
+            descripcion: data.descripcion || "",
+            costoAlmacenamiento: data.costoAlmacenamiento.toString(),
+            demanda: data.demandaArticulo.toString(),
+            costoCompra: data.costoVenta.toString(),
+            proveedorPredeterminado: "",
+          });
+        } catch (err) {
+          console.error("Error al obtener artículo:", err);
+          setMensajeError("No se pudo cargar la información del artículo.");
+        }
+      };
 
-  //     obtenerArticulo();
-  //   }
-  // }, [modo, codigoArticulo]);
+      obtenerArticulo();
+    }
+  }, [modo, codigoArticulo]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -122,6 +144,7 @@ const FormularioArticulo = ({ modo, codigoArticulo, onGuardar }: Props) => {
             onChange={handleChange}
             placeholder='Ingrese código'
             required
+            disabled={modo === 'edicion'}
             error={errores.codigo}
           />
           <CampoTexto

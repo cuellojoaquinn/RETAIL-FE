@@ -8,6 +8,7 @@ import "../../styles/AltaArticulo.css";
 import { useNavigate } from "react-router-dom";
 import BotonAgregar from "../../components/BotonAgregar";
 import Notificacion from "../../components/Notificacion";
+import articuloServiceReal, { type ArticuloDTO } from "../../services/articulo.service.real";
 
 const AltaArticulo = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const AltaArticulo = () => {
     costoCompra: "",
   });
   const [mensajeError, setMensajeError] = useState("");
+  
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -38,35 +40,38 @@ const AltaArticulo = () => {
       demanda: "Demanda artículo",
       costoCompra: "Costo de compra",
     };
-
+  
     const nuevosErrores: { [key: string]: boolean } = {};
     const camposFaltantes: string[] = [];
-
+  
     Object.entries(camposObligatorios).forEach(([campo, label]) => {
       if (!form[campo as keyof typeof form]) {
         nuevosErrores[campo] = true;
         camposFaltantes.push(label);
       }
     });
-
+  
     if (camposFaltantes.length > 0) {
       setErrores(nuevosErrores);
       setMensajeError(`Faltan completar: ${camposFaltantes.join(", ")}`);
       return;
     }
-
+  
     setErrores({});
     setMensajeError("");
-
-    const nuevoArticulo = {
-      ...form,
+  
+    const articuloDTO: ArticuloDTO = {
+      codArticulo: parseInt(form.codigo),
+      nombre: form.nombre,
+      descripcion: form.descripcion,
       costoAlmacenamiento: parseFloat(form.costoAlmacenamiento),
-      demanda: parseFloat(form.demanda),
-      costoCompra: parseFloat(form.costoCompra),
+      demandaArticulo: parseFloat(form.demanda),
+      costoVenta: parseFloat(form.costoCompra),
     };
-
+    
+    
     try {
-      await new Promise((res) => setTimeout(res, 1000));
+      await articuloServiceReal.saveArticulo(articuloDTO);
       navigate("/articulos");
     } catch (error) {
       console.error("Error:", error);

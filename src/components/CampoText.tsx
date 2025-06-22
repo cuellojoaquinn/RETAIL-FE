@@ -9,6 +9,7 @@ interface Props {
   type?: string;
   required?: boolean;
   error?: boolean;
+  disabled?: boolean;
 }
 
 const CampoTexto = ({
@@ -20,6 +21,7 @@ const CampoTexto = ({
   type = "text",
   required = false,
   error,
+  disabled = false,
 }: Props) => {
   return (
     <div className='campo'>
@@ -34,6 +36,7 @@ const CampoTexto = ({
         placeholder={placeholder}
         type={type}
         required={required}
+        disabled={disabled}
         className={`campo-input ${error ? "input-error" : ""}`}
       />
     </div>

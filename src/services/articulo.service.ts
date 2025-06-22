@@ -445,31 +445,8 @@ class ArticuloService {
     
     return this.articulos.filter(articulo => articulo.tipoModelo === tipoModelo);
   }
-
-  // Obtener estadísticas básicas
-  async getEstadisticas() {
-    await this.delay();
-    
-    const total = this.articulos.length;
-    const activos = this.articulos.filter(a => a.estado === 'Activo').length;
-    const inactivos = total - activos;
-    const sinStock = this.articulos.filter(a => a.inventario === 0).length;
-    const aReponer = this.articulos.filter(a => 
-      a.estado === 'Activo' && 
-      a.inventario <= a.stockSeguridad &&
-      a.inventario > 0
-    ).length;
-
-    return {
-      total,
-      activos,
-      inactivos,
-      sinStock,
-      aReponer
-    };
-  }
 }
 
 // Exportar instancia singleton
 export const articuloService = new ArticuloService();
-export default articuloService; 
+export default articuloService;

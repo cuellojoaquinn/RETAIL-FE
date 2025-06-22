@@ -43,10 +43,7 @@ export const ejemploUsoArticuloService = async () => {
     // 8. Buscar artículos
     const busqueda = await articuloService.searchArticulos('Mouse');
     
-    // 9. Obtener estadísticas
-    const estadisticas = await articuloService.getEstadisticas();
-    
-    // 10. Eliminar artículo (solo si no tiene inventario)
+    // 9. Eliminar artículo (solo si no tiene inventario)
     try {
       await articuloService.deleteById(nuevoArticulo.id);
     } catch (error) {

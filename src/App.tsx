@@ -33,7 +33,7 @@ function App() {
             {/* Rutas de Artículos */}
             <Route path='/articulos' element={<Articulos />} />
             <Route path='/articulos/nuevo' element={<AltaArticulo />} />
-            <Route path='/articulos/editar/:codigo' element={<EditarArticulo />} />
+            <Route path='/articulos/editar/:id' element={<EditarArticulo />} />
             
             {/* Rutas de Proveedores */}
             <Route path='/proveedores' element={<Proveedores />} />

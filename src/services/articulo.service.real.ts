@@ -7,32 +7,67 @@ import {
   apiPut, 
   apiDelete, 
   API_ENDPOINTS, 
-  handleApiError,
+  handleApiError, 
   isSuccessfulResponse 
 } from '../config/api';
 
 export interface Articulo {
   id: number;
-  codigo: string;
+  codArticulo: number;
   nombre: string;
-  estado: 'Activo' | 'Inactivo';
-  proveedor: string;
-  precio: string;
-  inventario: number;
+  descripcion: string;
+  produccionDiaria: number;
+  demandaArticulo: number;
+  costoAlmacenamiento: number;
+  costoVenta: number;
+  fechaBajaArticulo: string | null;
+  puntoPedido: number;
   stockSeguridad: number;
-  tipoModelo: string;
-  proveedorPredeterminadoId?: number;
+  inventarioMaximo: number;
+  loteOptimo: number;
+  stockActual: number;
+  z: number;
+  desviacionEstandar: number;
+  proveedorPredeterminado: number | null;
+  cgi: number;
 }
 
 export interface Page<T> {
   content: T[];
-  totalElements: number;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
   totalPages: number;
+  totalElements: number;
+  last: boolean;
   size: number;
   number: number;
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
   first: boolean;
-  last: boolean;
   numberOfElements: number;
+  empty: boolean;
+}
+
+export interface ArticuloDTO {
+  codArticulo: number;
+  nombre: string;
+  descripcion: string;
+  costoAlmacenamiento: number;
+  demandaArticulo: number;
+  costoVenta: number;
 }
 
 class ArticuloServiceReal {
@@ -73,19 +108,10 @@ class ArticuloServiceReal {
   }
 
   // POST /articulos - Crear nuevo artículo
-  async saveArticulo(articulo: Omit<Articulo, 'id'>): Promise<Articulo> {
-    try {
-      const response = await apiPost(API_ENDPOINTS.ARTICULOS, articulo);
-      
-      if (!isSuccessfulResponse(response)) {
-        await handleApiError(response);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error creando artículo:', error);
-      throw error;
-    }
+  async saveArticulo(articulo: ArticuloDTO): Promise<any> {
+    const response = await apiPost(API_ENDPOINTS.ARTICULOS, articulo);
+    if (!isSuccessfulResponse(response)) await handleApiError(response);
+    return response.json();
   }
 
   // PUT /articulos/{id} - Actualizar artículo
@@ -215,24 +241,8 @@ class ArticuloServiceReal {
       throw error;
     }
   }
-
-  // GET /articulos/estadisticas - Obtener estadísticas
-  async getEstadisticas() {
-    try {
-      const response = await apiGet(`${API_ENDPOINTS.ARTICULOS}/estadisticas`);
-      
-      if (!isSuccessfulResponse(response)) {
-        await handleApiError(response);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error obteniendo estadísticas:', error);
-      throw error;
-    }
-  }
 }
 
 // Exportar una instancia singleton
 const articuloServiceReal = new ArticuloServiceReal();
-export default articuloServiceReal; 
+export default articuloServiceReal;
