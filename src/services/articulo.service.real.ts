@@ -14,6 +14,7 @@ import {
 export interface Articulo {
   id: number;
   codArticulo: number;
+  codigo?: string;
   nombre: string;
   descripcion: string;
   produccionDiaria: number;
@@ -77,7 +78,7 @@ export interface ArticuloDTO {
 export interface EditarArticuloDTO {
   nombre: string;
   descripcion: string;
-  demanda: number;
+  demandaArticulo: number;
   costoAlmacenamiento: number;
   costoVenta: number;
   stockActual: number;

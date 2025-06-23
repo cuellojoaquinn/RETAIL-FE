@@ -11,14 +11,11 @@ export interface VentaArticulo {
 
 export interface Venta {
   id: number;
-  fecha: string;
-  cliente: string;
-  articulos: VentaArticulo[];
-  total: number;
-  estado: 'Pendiente' | 'Completada' | 'Cancelada';
-  metodoPago: 'Efectivo' | 'Tarjeta' | 'Transferencia';
-  vendedor: string;
-  observaciones?: string;
+  articuloId: number;
+  articuloNombre: string;
+  cantidad: number;
+  montoTotal: number;
+  fechaVenta: string;
 }
 
 // Interfaz para crear una nueva venta (solo articuloId y cantidad)

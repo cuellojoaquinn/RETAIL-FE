@@ -53,12 +53,9 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
 
   useEffect(() => {
     if (datosIniciales) {
-      console.log('Datos iniciales recibidos:', datosIniciales);
-      console.log('Proveedor predeterminado del artículo:', datosIniciales.proveedorPredeterminado);
-      console.log('Tipo de proveedorPredeterminado:', typeof datosIniciales.proveedorPredeterminado);
+
       
       const proveedorPredeterminadoValue = datosIniciales.proveedorPredeterminado?.toString() || "";
-      console.log('Valor convertido a string:', proveedorPredeterminadoValue);
       
       setForm({
         codigo: datosIniciales.codArticulo?.toString() || "",
@@ -78,39 +75,21 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
 
   useEffect(() => {
     if (modo === 'edicion' && datosIniciales?.proveedorPredeterminado !== null) {
-      console.log('Modo edición detectado con proveedor predeterminado, cargando proveedores...');
       cargarProveedores();
     } else if (modo === 'edicion') {
-      console.log('Modo edición detectado sin proveedor predeterminado, no cargando proveedores');
     }
   }, [modo, datosIniciales?.proveedorPredeterminado]);
 
-  useEffect(() => {
-    if (modo === 'edicion') {
-      console.log('Estado actual del formulario:', {
-        proveedores: proveedores.length,
-        cargandoProveedores,
-        formProveedorPredeterminado: form.proveedorPredeterminado,
-        proveedoresData: proveedores.map(p => ({ id: p.id, nombre: p.nombre })),
-        proveedorSeleccionadoExiste: proveedores.some(p => p.id.toString() === form.proveedorPredeterminado)
-      });
-    }
-  }, [modo, proveedores, cargandoProveedores, form.proveedorPredeterminado]);
 
   // Efecto para asegurar que el proveedor predeterminado se seleccione cuando se cargan los proveedores
   useEffect(() => {
     if (modo === 'edicion' && !cargandoProveedores && proveedores.length > 0 && datosIniciales?.proveedorPredeterminado !== null) {
-      console.log('Verificando selección de proveedor predeterminado...');
-      console.log('Datos iniciales proveedorPredeterminado:', datosIniciales.proveedorPredeterminado);
-      console.log('Form actual proveedorPredeterminado:', form.proveedorPredeterminado);
       
-      const proveedorPredeterminadoValue = datosIniciales.proveedorPredeterminado.toString();
+      const proveedorPredeterminadoValue = datosIniciales?.proveedorPredeterminado?.toString() || "";
       const proveedorExiste = proveedores.some(p => p.id.toString() === proveedorPredeterminadoValue);
       
-      console.log('Proveedor existe en la lista:', proveedorExiste);
       
       if (proveedorExiste && form.proveedorPredeterminado !== proveedorPredeterminadoValue) {
-        console.log('Actualizando proveedor predeterminado en el formulario...');
         setForm(prev => ({
           ...prev,
           proveedorPredeterminado: proveedorPredeterminadoValue
@@ -122,14 +101,15 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
   const cargarProveedores = async () => {
     try {
       setCargandoProveedores(true);
-      console.log('Iniciando carga de proveedores...');
-      const proveedoresData = await proveedorService.findAll();
-      console.log('Proveedores cargados:', proveedoresData);
-      // No filtrar por activo ya que el backend no devuelve ese campo
+      if (!datosIniciales?.id) {
+        throw new Error('ID del artículo no disponible para cargar proveedores.');
+      }
+      const articuloId = parseInt(datosIniciales.id, 10);
+      const proveedoresData = await proveedorService.findProveedoresByArticuloId(articuloId);
       setProveedores(proveedoresData);
     } catch (error) {
       console.error('Error cargando proveedores:', error);
-      setMensajeGlobalError('Error cargando la lista de proveedores');
+      setMensajeGlobalError('Error cargando la lista de proveedores.');
     } finally {
       setCargandoProveedores(false);
     }
@@ -138,15 +118,16 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
   const actualizarProveedorPredeterminado = async (proveedorId: number) => {
     try {
       setActualizandoProveedor(true);
-      console.log('Actualizando proveedor predeterminado a:', proveedorId);
+      
+      if (!datosIniciales?.id) {
+        throw new Error('ID del artículo no disponible');
+      }
       
       const articuloId = parseInt(datosIniciales.id);
       const resultado = await articuloServiceReal.setProveedorPredeterminado(articuloId, proveedorId);
       
-      console.log('Proveedor predeterminado actualizado exitosamente:', resultado);
       setMensajeGlobalError(null);
     } catch (error) {
-      console.error('Error actualizando proveedor predeterminado:', error);
       setMensajeGlobalError('Error actualizando el proveedor predeterminado');
     } finally {
       setActualizandoProveedor(false);
@@ -176,16 +157,47 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
 
   const validarFormulario = () => {
     const nuevosErrores: { [key: string]: string } = {};
-    if (modo === 'alta' && !form.codigo) nuevosErrores.codigo = "El código es requerido.";
-    if (!form.nombre) nuevosErrores.nombre = "El nombre es requerido.";
-    if (!form.costoAlmacenamiento) nuevosErrores.costoAlmacenamiento = "El costo es requerido.";
-    if (!form.demandaArticulo) nuevosErrores.demandaArticulo = "La demanda es requerida.";
-    if (!form.costoVenta) nuevosErrores.costoVenta = "El costo de venta es requerido.";
-    if (!form.stockActual) nuevosErrores.stockActual = "El stock es requerido.";
-    if (!form.produccionDiaria) nuevosErrores.produccionDiaria = "La producción es requerida.";
-    if (!form.z) nuevosErrores.z = "El valor Z es requerido.";
-    if (!form.desviacionEstandar) nuevosErrores.desviacionEstandar = "La desviación es requerida.";
-    
+
+    // --- Validación de campos de texto ---
+    if (!form.nombre.trim()) {
+      nuevosErrores.nombre = "El nombre es requerido.";
+    }
+
+    // --- Validación de campos numéricos ---
+    const camposAValidar: { nombre: keyof ArticuloForm, noNegativo: boolean, etiqueta: string }[] = [
+      { nombre: 'costoAlmacenamiento', noNegativo: true, etiqueta: 'Costo de Almacenamiento' },
+      { nombre: 'demandaArticulo', noNegativo: true, etiqueta: 'Demanda' },
+      { nombre: 'costoVenta', noNegativo: true, etiqueta: 'Costo de Venta' },
+      { nombre: 'stockActual', noNegativo: true, etiqueta: 'Stock Actual' },
+      { nombre: 'produccionDiaria', noNegativo: true, etiqueta: 'Producción Diaria' },
+      { nombre: 'z', noNegativo: false, etiqueta: 'Nivel de Confianza (Z)' },
+      { nombre: 'desviacionEstandar', noNegativo: true, etiqueta: 'Desviación Estándar' },
+    ];
+
+    camposAValidar.forEach(({ nombre, noNegativo, etiqueta }) => {
+      const valor = form[nombre];
+
+      if (valor === null || valor === undefined || valor.toString().trim() === '') {
+        nuevosErrores[nombre] = `El campo "${etiqueta}" es requerido.`;
+        return; 
+      }
+
+      const valorNumerico = parseFloat(valor);
+
+      if (isNaN(valorNumerico)) {
+        nuevosErrores[nombre] = `El campo "${etiqueta}" debe ser un número.`;
+        return;
+      }
+
+      if (noNegativo && valorNumerico < 0) {
+        nuevosErrores[nombre] = `El campo "${etiqueta}" no puede ser negativo.`;
+      }
+    });
+
+    if (modo === 'alta' && !form.codigo.trim()) {
+      nuevosErrores.codigo = "El código es requerido.";
+    }
+
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -196,9 +208,15 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
       setMensajeGlobalError("Por favor, corrija los errores en el formulario.");
       return;
     }
-    onGuardar(form);
+    
+    // Si es modo edición, excluir el campo proveedorPredeterminado del JSON
+    if (modo === 'edicion') {
+      const { proveedorPredeterminado, ...datosParaEnviar } = form;
+      onGuardar(datosParaEnviar);
+    } else {
+      onGuardar(form);
+    }
   };
-
   return (
     <div className="formulario-articulo-container">
       {mensajeGlobalError && (
@@ -225,7 +243,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
       <FormularioSeccion icono={<MdInventory />} titulo='Gestión de Inventario'>
         <div className='formulario-grid'>
           <CampoTexto label='Stock Actual' name='stockActual' type='number' value={form.stockActual} onChange={handleChange} placeholder='Ingrese stock' required error={errores.stockActual} />
-          <CampoTexto label='Demanda Diaria' name='demandaArticulo' type='number' value={form.demandaArticulo} onChange={handleChange} placeholder='Ingrese demanda' required error={errores.demandaArticulo} />
+          <CampoTexto label='Demanda' name='demandaArticulo' type='number' value={form.demandaArticulo} onChange={handleChange} placeholder='Ingrese demanda' required error={errores.demandaArticulo} />
           <CampoTexto label='Producción Diaria' name='produccionDiaria' type='number' value={form.produccionDiaria} onChange={handleChange} placeholder='Ingrese producción' required error={errores.produccionDiaria} />
         </div>
       </FormularioSeccion>
@@ -240,7 +258,38 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
       {modo === 'edicion' && datosIniciales?.proveedorPredeterminado !== null && (
         <FormularioSeccion icono={<MdPerson />} titulo='Proveedor Predeterminado'>
           <div className='formulario-grid-single'>
-              <label htmlFor='proveedorPredeterminado'>Proveedor</label>
+            <div style={{ marginBottom: '1rem' }}>
+              {(() => {
+                if (!form.proveedorPredeterminado) return null;
+
+                const proveedorActual = proveedores.find(p => p.id.toString() === form.proveedorPredeterminado);
+                const nombreProveedor = proveedorActual?.nombreProveedor || `(ID: ${form.proveedorPredeterminado})`;
+                
+                return (
+                  <div style={{
+                    backgroundColor: '#e8f0fe',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '999px',
+                    display: 'inline-block',
+                    marginTop: '0.5rem',
+                  }}>
+                    <strong style={{
+                      backgroundColor: '#2ee0c3',
+                      color: 'white',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '999px',
+                      marginRight: '0.5rem'
+                    }}>
+                      Proveedor predeterminado
+                    </strong>
+                    {nombreProveedor}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div>
+              <label htmlFor='proveedorPredeterminado'>Cambiar proveedor predeterminado:  </label>
               <select 
                 id='proveedorPredeterminado' 
                 name='proveedorPredeterminado' 
@@ -248,6 +297,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
                 onChange={handleChange} 
                 className='select-proveedor'
                 disabled={cargandoProveedores || actualizandoProveedor}
+                style={{ marginTop: '0.5rem' }}
               >
                 <option value=''>
                   {cargandoProveedores ? 'Cargando proveedores...' : 
@@ -255,7 +305,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
                 </option>
                 {proveedores.map(proveedor => (
                   <option key={proveedor.id} value={proveedor.id.toString()}>
-                    {proveedor.nombre} (ID: {proveedor.id})
+                    {proveedor.nombreProveedor}
                   </option>
                 ))}
               </select>
@@ -277,25 +327,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
                   Actualizando proveedor predeterminado...
                 </div>
               )}
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#6c757d', 
-                marginTop: '0.25rem' 
-              }}>
-                Proveedores cargados: {proveedores.length} | Valor seleccionado: "{form.proveedorPredeterminado || 'Ninguno'}" | 
-                Proveedor existe: {proveedores.some(p => p.id.toString() === form.proveedorPredeterminado) ? 'Sí' : 'No'}
-              </div>
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#dc3545', 
-                marginTop: '0.25rem',
-                backgroundColor: '#f8d7da',
-                padding: '0.25rem',
-                borderRadius: '4px'
-              }}>
-                Debug: IDs disponibles: [{proveedores.map(p => p.id).join(', ')}] | 
-                Buscando: "{form.proveedorPredeterminado}"
-              </div>
+            </div>
           </div>
         </FormularioSeccion>
       )}

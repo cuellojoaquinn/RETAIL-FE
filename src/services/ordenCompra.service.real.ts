@@ -2,27 +2,21 @@ import { apiGet, apiPost, apiPut, apiDelete, API_ENDPOINTS, handleApiError, isSu
 
 export interface OrdenCompra {
   id: number;
-  numero: string;
-  fechaCreacion: string;
-  proveedor: {
-    id: number;
-    nombre: string;
-    email: string;
-  };
-  articulo: {
-    id: number;
-    codigo: string;
-    nombre: string;
-    precio: number;
-  };
+  fechaCreacionOrdenCompra: string;
+  fechaModificacionOrdenCompra: string | null;
+  estadoOrden: string;
+  articuloId: number;
+  articuloNombre: string;
+  montoTotal: number;
   cantidad: number;
-  precioUnitario: number;
-  total: number;
-  estado: 'Pendiente' | 'Enviada' | 'Finalizada' | 'Cancelada';
-  tiempoEntrega: number;
-  puntoPedido: number;
-  costoOrden: number;
-  observaciones: string;
+  proveedorId: number;
+  proveedorNombre: string;
+}
+
+export interface CrearOrdenCompraDTO {
+  articuloId: number;
+  proveedorId: number;
+  cantidad: number;
 }
 
 class OrdenCompraServiceReal {
@@ -35,6 +29,12 @@ class OrdenCompraServiceReal {
   async findById(id: number): Promise<OrdenCompra | null> {
     const response = await apiGet(API_ENDPOINTS.ORDEN_COMPRA_BY_ID(id));
     if (response.status === 404) return null;
+    if (!isSuccessfulResponse(response)) await handleApiError(response);
+    return response.json();
+  }
+
+  async save(payload: CrearOrdenCompraDTO): Promise<OrdenCompra> {
+    const response = await apiPost(API_ENDPOINTS.ORDENES_COMPRA, payload);
     if (!isSuccessfulResponse(response)) await handleApiError(response);
     return response.json();
   }

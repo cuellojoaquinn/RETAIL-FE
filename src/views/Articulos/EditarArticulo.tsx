@@ -33,7 +33,7 @@ const EditarArticulo = () => {
   const [error, setError] = useState<string | null>(null);
   const [articulo, setArticulo] = useState<ArticuloBackend | null>(null);
 
-
+  console.log("proveedorPredeterminado", articulo?.proveedorPredeterminado)
   // Cargar artículo cuando el componente se monta o cambia el ID
   useEffect(() => {
     if (id) {
@@ -41,25 +41,27 @@ const EditarArticulo = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (id) {
+      cargarArticulo(id);
+    }
+  }, [id]);
+  
   const cargarArticulo = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
-
-      console.log('Cargando artículo con ID:', id);
+  
       const response = await articuloServiceReal.findById(parseInt(id));
-      console.log('Respuesta del backend:', response);
-      
+  
       if (response) {
-        console.log('Proveedor predeterminado en respuesta:', response.proveedorPredeterminado);
-        console.log('Tipo de proveedorPredeterminado:', typeof response.proveedorPredeterminado);
+        // ⚠️ Si proveedorPredeterminado es null, setear el primero luego en el form (ver más abajo)
         setArticulo(response);
       } else {
         setError("Artículo no encontrado");
       }
       
     } catch (err) {
-      console.error('Error cargando artículo:', err);
       setError(err instanceof Error ? err.message : 'Error cargando artículo');
     } finally {
       setLoading(false);
@@ -71,18 +73,16 @@ const EditarArticulo = () => {
       // Convertir el formato del formulario al formato esperado por el backend
       const articuloParaEnviar: EditarArticuloDTO = {
         nombre: articuloActualizado.nombre,
-        descripcion: articuloActualizado.descripcion,
-        demanda: parseFloat(articuloActualizado.demandaArticulo),
-        costoAlmacenamiento: parseFloat(articuloActualizado.costoAlmacenamiento),
-        costoVenta: parseFloat(articuloActualizado.costoVenta),
-        stockActual: parseInt(articuloActualizado.stockActual),
-        produccionDiaria: parseInt(articuloActualizado.produccionDiaria),
-        z: parseInt(articuloActualizado.z),
-        desviacionEstandar: parseInt(articuloActualizado.desviacionEstandar),
-        proveedorPredeterminado: articuloActualizado.proveedorPredeterminado ? parseInt(articuloActualizado.proveedorPredeterminado) : null,
+        descripcion: articuloActualizado.descripcion || "",
+        demandaArticulo: parseFloat(articuloActualizado.demandaArticulo) || 0,
+        costoAlmacenamiento: parseFloat(articuloActualizado.costoAlmacenamiento) || 0,
+        costoVenta: parseFloat(articuloActualizado.costoVenta) || 0,
+        stockActual: parseInt(articuloActualizado.stockActual) || 0,
+        produccionDiaria: parseFloat(articuloActualizado.produccionDiaria) || 0,
+        z: parseFloat(articuloActualizado.z) || 0,
+        desviacionEstandar: parseFloat(articuloActualizado.desviacionEstandar) || 0,
       };
       
-      console.log("articuloParaEnviar", articuloParaEnviar);
       await articuloServiceReal.updateArticulo(parseInt(id!), articuloParaEnviar);
 
       alert("Artículo actualizado correctamente");

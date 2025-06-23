@@ -31,8 +31,9 @@ export interface Proveedor {
 
 export interface ProveedorBackend {
   id: number;
-  nombre: string;
-  proveedorArticulos: any[];
+  nombre?: string;
+  nombreProveedor?: string;
+  proveedorArticulos?: any[];
 }
 
 export interface ArticuloProveedor {
@@ -195,6 +196,12 @@ class ProveedorServiceReal {
     const response = await apiPut(`${API_ENDPOINTS.PROVEEDORES}/baja/${id}`, {});
     if (!isSuccessfulResponse(response)) await handleApiError(response);
     return await safeJsonResponse<Proveedor>(response);
+  }
+
+  async findProveedoresByArticuloId(idArticulo: number): Promise<ProveedorBackend[]> {
+    const response = await apiGet(API_ENDPOINTS.PROVEEDORES_BY_ARTICULO_ID(idArticulo));
+    if (!isSuccessfulResponse(response)) await handleApiError(response);
+    return await safeJsonResponse<ProveedorBackend[]>(response) || [];
   }
 }
 

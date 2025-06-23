@@ -141,9 +141,9 @@ const Articulos = () => {
         resultados = articulos.filter(a => !a.fechaBajaArticulo);
       } else if (filtro === 'Inactivo') {
         resultados = articulos.filter(a => a.fechaBajaArticulo);
-      } else if (filtro === 'Sin Stock') {
+      } else if (filtro === 'Faltantes') {
         resultados = await articuloService.getArticulosFaltantes();
-      } else if (filtro === 'A Reponer') {
+      } else if (filtro === 'A reponer') {
         resultados = await articuloService.getArticulosAReponer();
       }
       
@@ -159,7 +159,6 @@ const Articulos = () => {
   };
 
   const handleEditar = (id: number) => {
-    console.log("id", id);
     navigate(`/articulos/editar/${id}`);
   };
 

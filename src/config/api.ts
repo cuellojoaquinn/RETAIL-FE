@@ -53,7 +53,6 @@ export const apiPost = async (endpoint: string, data?: any): Promise<Response> =
 
 // Función helper para peticiones PUT
 export const apiPut = async (endpoint: string, data?: any): Promise<Response> => {
-  console.log("apiPut", endpoint, data);
   return apiRequest(endpoint, {
     method: 'PUT',
     body: data ? JSON.stringify(data) : undefined,
@@ -83,6 +82,7 @@ export const API_ENDPOINTS = {
   // Proveedores
   PROVEEDORES: 'proveedores',
   PROVEEDOR_BY_ID: (id: string | number) => `proveedores/${id}`,
+  PROVEEDORES_BY_ARTICULO_ID: (idArticulo: string | number) => `proveedores/articulo/${idArticulo}`,
   
   // Ventas
   VENTAS: 'ventas',

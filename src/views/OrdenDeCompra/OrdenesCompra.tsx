@@ -1,13 +1,13 @@
 // 📁 src/views/OrdenDeCompra/OrdenesCompra.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdShoppingCart, MdWarning, MdDelete, MdAdd } from 'react-icons/md';
+import { MdShoppingCart, MdWarning, MdDelete, MdAdd, MdSearch, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import Buscador from '../../components/Buscador';
 import FiltrosRapidos from '../../components/FiltrosRapidos';
 import TablaGenerica from '../../components/TablaGenerica';
-import ordenCompraService from '../../services/ordenCompra.service.real';
-import type { OrdenCompra } from '../../services/mocks/ordenCompra.service';
+import ordenCompraService, { type OrdenCompra } from '../../services/ordenCompra.service.real';
 import '../../styles/OrdenDeCompra.css';
+import '../../styles/TablaArticulos.css';
 
 const OrdenesCompra = () => {
   const [ordenesCompra, setOrdenesCompra] = useState<OrdenCompra[]>([]);
@@ -18,21 +18,14 @@ const OrdenesCompra = () => {
   const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
   const [ordenAEliminar, setOrdenAEliminar] = useState<OrdenCompra | null>(null);
   const [eliminando, setEliminando] = useState(false);
-  const [estadisticas, setEstadisticas] = useState({
-    total: 0,
-    pendientes: 0,
-    enviadas: 0,
-    finalizadas: 0,
-    canceladas: 0,
-    totalValor: 0
-  });
+  const [terminoBusqueda, setTerminoBusqueda] = useState("");
+  const [filtroSeleccionado, setFiltroSeleccionado] = useState("Todas");
 
   const navigate = useNavigate();
 
   // Cargar órdenes de compra al montar el componente
   useEffect(() => {
     cargarOrdenesCompra();
-    cargarEstadisticas();
   }, []);
 
   const cargarOrdenesCompra = async () => {
@@ -52,54 +45,20 @@ const OrdenesCompra = () => {
   };
 
   const cargarEstadisticas = async () => {
-    try {
-      const stats = await ordenCompraService.getEstadisticas();
-      setEstadisticas(stats);
-    } catch (err) {
-      console.error('Error cargando estadísticas:', err);
-    }
+    // try {
+    //   const data = await ordenCompraService.getEstadisticas();
+    //   setEstadisticas(data);
+    // } catch (error) {
+    //   console.error("Error cargando estadísticas:", error);
+    // }
   };
 
-  // Buscar órdenes de compra
-  const handleBuscar = async (termino: string) => {
-    setBusqueda(termino);
-    
-    if (!termino.trim()) {
-      cargarOrdenesCompra();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const resultados = await ordenCompraService.searchOrdenes(termino);
-      setOrdenesCompra(resultados);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error en la búsqueda');
-    } finally {
-      setLoading(false);
-    }
+  const handleBuscar = (termino: string) => {
+    setTerminoBusqueda(termino);
   };
 
-  // Manejar filtros rápidos
-  const handleFiltroRapido = async (filtro: string) => {
-    setFiltroEstado(filtro);
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (filtro === "Todos") {
-        await cargarOrdenesCompra();
-      } else {
-        const ordenes = await ordenCompraService.findByEstado(filtro as OrdenCompra['estado']);
-        setOrdenesCompra(ordenes);
-      }
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error aplicando filtro');
-    } finally {
-      setLoading(false);
-    }
+  const handleFiltroRapido = (filtro: string) => {
+    setFiltroSeleccionado(filtro);
   };
 
   const handleAgregar = () => {
@@ -107,20 +66,11 @@ const OrdenesCompra = () => {
   };
 
   const handleEditar = (orden: OrdenCompra) => {
-    if (orden.estado === 'Pendiente') {
-      navigate(`/ordenes-compra/editar/${orden.id}`);
-    } else {
-      alert('Solo se pueden editar órdenes en estado Pendiente');
-    }
+    navigate(`/ordenes-compra/editar/${orden.id}`);
   };
 
   const handleEliminar = (orden: OrdenCompra) => {
-    if (orden.estado === 'Pendiente') {
-      setOrdenAEliminar(orden);
-      setMostrarModalEliminacion(true);
-    } else {
-      alert('Solo se pueden eliminar órdenes en estado Pendiente');
-    }
+    navigate(`/ordenes-compra/eliminar/${orden.id}`);
   };
 
   const confirmarEliminacion = async () => {
@@ -133,7 +83,6 @@ const OrdenesCompra = () => {
       
       // Recargar datos
       await cargarOrdenesCompra();
-      await cargarEstadisticas();
       
       setMostrarModalEliminacion(false);
       setOrdenAEliminar(null);
@@ -150,6 +99,22 @@ const OrdenesCompra = () => {
     setMostrarModalEliminacion(false);
     setOrdenAEliminar(null);
   };
+
+  const ordenesFiltradas = ordenesCompra
+    .filter(o => {
+      if (filtroSeleccionado === 'Todas') return true;
+      return o.estadoOrden.toLowerCase() === filtroSeleccionado.toLowerCase();
+    })
+    .filter(o => {
+      if (!terminoBusqueda) return true;
+      const busqueda = terminoBusqueda.toLowerCase();
+      return (
+        o.id.toString().includes(busqueda) ||
+        o.proveedorNombre.toLowerCase().includes(busqueda) ||
+        o.articuloNombre.toLowerCase().includes(busqueda) ||
+        o.estadoOrden.toLowerCase().includes(busqueda)
+      );
+    });
 
   if (loading && ordenesCompra.length === 0) {
     return (
@@ -193,108 +158,69 @@ const OrdenesCompra = () => {
         </div>
       </div>
 
-      {/* Estadísticas */}
-      <div className="estadisticas-container">
-        <div className="estadistica-card total">
-          <div className="estadistica-icon">
-            <MdShoppingCart />
-          </div>
-          <div className="estadistica-label">Total</div>
-          <div className="estadistica-value">{estadisticas.total}</div>
-        </div>
-        <div className="estadistica-card pendientes">
-          <div className="estadistica-icon">
-            <MdShoppingCart />
-          </div>
-          <div className="estadistica-label">Pendientes</div>
-          <div className="estadistica-value">{estadisticas.pendientes}</div>
-        </div>
-        <div className="estadistica-card enviadas">
-          <div className="estadistica-icon">
-            <MdShoppingCart />
-          </div>
-          <div className="estadistica-label">Enviadas</div>
-          <div className="estadistica-value">{estadisticas.enviadas}</div>
-        </div>
-        <div className="estadistica-card finalizadas">
-          <div className="estadistica-icon">
-            <MdShoppingCart />
-          </div>
-          <div className="estadistica-label">Finalizadas</div>
-          <div className="estadistica-value">{estadisticas.finalizadas}</div>
-        </div>
-        <div className="estadistica-card canceladas">
-          <div className="estadistica-icon">
-            <MdShoppingCart />
-          </div>
-          <div className="estadistica-label">Canceladas</div>
-          <div className="estadistica-value">{estadisticas.canceladas}</div>
-        </div>
-      </div>
-
       {/* Filtros y búsqueda */}
       <div className="filtros-container">
-        <Buscador 
-          value={busqueda} 
-          onChange={handleBuscar} 
-          placeholder="Buscar por número, proveedor o artículo..." 
+        <Buscador
+          value={terminoBusqueda}
+          onChange={handleBuscar}
+          placeholder="Buscar por ID, proveedor o artículo..."
         />
         <FiltrosRapidos
-          activo={filtroEstado}
+          activo={filtroSeleccionado}
           onSeleccionar={handleFiltroRapido}
-          opciones={["Todos", "Pendiente", "Enviada", "Finalizada", "Cancelada"]}
+          opciones={["Todas", "Pendiente", "Enviada", "Finalizada", "Cancelada"]}
         />
       </div>
 
-      {ordenesCompra.length === 0 ? (
+      {ordenesFiltradas.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <MdShoppingCart style={{ fontSize: '3rem', color: '#6c757d', marginBottom: '1rem' }} />
           <p>No se encontraron órdenes de compra con los filtros aplicados</p>
         </div>
       ) : (
-        <TablaGenerica
-          datos={ordenesCompra}
-          columnas={[
-            { 
-              header: "Número", 
-              render: (o: OrdenCompra) => <strong>{o.numero}</strong> 
-            },
-            { 
-              header: "Fecha", 
-              render: (o: OrdenCompra) => new Date(o.fechaCreacion).toLocaleDateString('es-ES') 
-            },
-            { 
-              header: "Proveedor", 
-              render: (o: OrdenCompra) => o.proveedor.nombre 
-            },
-            { 
-              header: "Artículo", 
-              render: (o: OrdenCompra) => o.articulo.nombre 
-            },
-            { 
-              header: "Cantidad", 
-              render: (o: OrdenCompra) => o.cantidad 
-            },
-            { 
-              header: "Total", 
-              render: (o: OrdenCompra) => (
-                <strong style={{ color: '#28a745' }}>
-                  ${o.total.toLocaleString()}
-                </strong>
-              ) 
-            },
-            { 
-              header: "Estado", 
-              render: (o: OrdenCompra) => (
-                <span className={`estado-badge estado-${o.estado.toLowerCase()}`}>
-                  {o.estado}
-                </span>
-              ) 
-            }
-          ]}
-          onEditar={(o) => handleEditar(o)}
-          onEliminar={(o) => handleEliminar(o)}
-        />
+        <div className="tabla-container">
+          <table className="tabla-articulos">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha de Creación</th>
+                <th>Proveedor</th>
+                <th>Artículo</th>
+                <th>Cantidad</th>
+                <th>Monto Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordenesFiltradas.map((o) => (
+                <tr key={o.id}>
+                  <td>{o.id}</td>
+                  <td>{new Date(o.fechaCreacionOrdenCompra).toLocaleDateString()}</td>
+                  <td>{o.proveedorNombre}</td>
+                  <td>{o.articuloNombre}</td>
+                  <td>{o.cantidad}</td>
+                  <td>${o.montoTotal.toLocaleString()}</td>
+                  <td>
+                    <span className={`estado-badge estado-${o.estadoOrden.toLowerCase()}`}>
+                      {o.estadoOrden}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="acciones">
+                      <button className="btn-accion editar" onClick={() => handleEditar(o)}>
+                        Editar
+                      </button>
+                      <button className="btn-accion eliminar" onClick={() => handleEliminar(o)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Modal de eliminación */}

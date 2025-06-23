@@ -51,17 +51,13 @@ const EditarProveedor = () => {
 
   // Función para convertir formato del backend al frontend
   const convertirTipoModeloBackendToFrontend = (tipoModelo: string): string => {
-    console.log('Convirtiendo backend a frontend:', tipoModelo);
     
     switch (tipoModelo) {
       case 'LOTE_FIJO':
-        console.log('Convirtiendo LOTE_FIJO → Lote fijo');
         return 'Lote fijo';
       case 'INTERVALO_FIJO':
-        console.log('Convirtiendo INTERVALO_FIJO → Intervalo fijo');
         return 'Intervalo fijo';
       default:
-        console.log('Valor no reconocido, retornando original:', tipoModelo);
         return tipoModelo;
     }
   };
@@ -106,7 +102,6 @@ const EditarProveedor = () => {
 
       // Cargar artículos del proveedor
       const articulosData = await proveedorService.getArticulosPorProveedor(parseInt(id!));
-      console.log('Artículos cargados del backend:', articulosData);
       setArticulos(articulosData);
       
       // Inicializar formularios de artículos
@@ -115,9 +110,6 @@ const EditarProveedor = () => {
         const codArticulo = art.articuloId?.toString() || art.codigo || '';
         const tipoModeloConvertido = convertirTipoModeloBackendToFrontend(art.tipoModelo || '');
         
-        console.log('Artículo:', art.nombreArticulo || art.nombre);
-        console.log('tipoModelo original del backend:', art.tipoModelo);
-        console.log('tipoModelo convertido:', tipoModeloConvertido);
         
         formulariosArticulos[codArticulo] = {
           demoraEntrega: art.demoraEntrega || 0,
@@ -306,16 +298,25 @@ const EditarProveedor = () => {
   };
 
   const eliminarArticulo = (codArticulo: string) => {
-    setArticulos(prev => prev.filter(art => 
-      (art.articuloId && art.articuloId.toString() !== codArticulo) && 
-      (art.codigo && art.codigo !== codArticulo)
-    ));
+    // No permitir eliminar el último artículo
+    if (articulos.length <= 1) {
+      setError('Un proveedor debe tener al menos un artículo asociado.');
+      // Opcional: limpiar el error después de un tiempo
+      setTimeout(() => setError(''), 5000);
+      return;
+    }
+
+    // Filtrar para eliminar el artículo
+    setArticulos(prev => prev.filter(art => {
+      const id = art.articuloId?.toString() || art.codigo || '';
+      return id !== codArticulo;
+    }));
     
-    // Eliminar el formulario del artículo
+    // Eliminar también su formulario asociado
     setFormArticulos(prev => {
-      const newForm = { ...prev };
-      delete newForm[codArticulo];
-      return newForm;
+      const nuevosFormularios = { ...prev };
+      delete nuevosFormularios[codArticulo];
+      return nuevosFormularios;
     });
   };
 
@@ -551,8 +552,6 @@ const EditarProveedor = () => {
               const nombreArticulo = articulo.nombreArticulo || articulo.nombre || 'Sin nombre';
               const tipoModeloValue = formArticulos[codArticulo]?.tipoModelo || '';
               
-              console.log('Renderizando artículo:', nombreArticulo);
-              console.log('tipoModelo en formArticulos:', tipoModeloValue);
               
               return (
                 <div key={codArticulo} style={{ 

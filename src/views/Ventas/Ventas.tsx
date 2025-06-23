@@ -4,35 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import TablaGenerica from '../../components/TablaGenerica';
 import BotonAgregar from '../../components/BotonAgregar';
 import ventaService from '../../services/venta.service.real';
+import type { Venta } from '../../services/venta.service.real';
 import { MdRefresh, MdWarning, MdShoppingCart } from 'react-icons/md';
-
-// Tipo Venta según la respuesta real del backend
-export interface Venta {
-  id: number;
-  fechaVenta: string;
-  articulo: {
-    id: number;
-    codArticulo: number;
-    nombre: string;
-    descripcion: string;
-    produccionDiaria: number;
-    demandaArticulo: number;
-    costoAlmacenamiento: number;
-    costoVenta: number;
-    fechaBajaArticulo: string | null;
-    puntoPedido: number;
-    stockSeguridad: number;
-    inventarioMaximo: number;
-    loteOptimo: number;
-    stockActual: number;
-    z: number;
-    desviacionEstandar: number;
-    proveedorPredeterminado: number | null;
-    cgi: number;
-  };
-  cantidad: number;
-  montoTotal: number;
-}
 
 const Ventas = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -166,7 +139,7 @@ const Ventas = () => {
             },
             { 
               header: "Artículo", 
-              render: (v: Venta) => <strong>{v.articulo?.nombre || 'N/A'}</strong> 
+              render: (v: Venta) => <strong>{v.articuloNombre || 'N/A'}</strong> 
             },
             { 
               header: "Fecha", 

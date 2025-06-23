@@ -84,7 +84,6 @@ const Proveedores = () => {
       setError('');
       const articulosData = await proveedorService.getArticulosPorProveedor(proveedorId);
       
-      console.log('Artículos recibidos del backend:', articulosData);
       
       // Transformar los datos al formato esperado por la tabla
       const articulosTransformados: Articulo[] = articulosData.map(art => ({
@@ -98,7 +97,6 @@ const Proveedores = () => {
         esPredeterminado: art.esPredeterminado
       }));
       
-      console.log('Artículos transformados:', articulosTransformados);
       setArticulos(articulosTransformados);
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : 'Error cargando artículos del proveedor';
