@@ -48,7 +48,7 @@ const EliminarOrdenCompra = () => {
     try {
       setEliminando(true);
       await ordenCompraService.deleteById(ordenCompra.id);
-      navigate('/ordenes-compra');
+      navigate('/orden-compra');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error eliminando la orden de compra');
     } finally {
@@ -76,7 +76,7 @@ const EliminarOrdenCompra = () => {
         <h3>Error</h3>
         <p>{error}</p>
         <button 
-          onClick={() => navigate('/ordenes-compra')}
+          onClick={() => navigate('/orden-compra')}
           className="btn btn-primary"
           style={{ marginTop: '1rem' }}
         >
@@ -93,7 +93,7 @@ const EliminarOrdenCompra = () => {
         <h3>Orden no encontrada</h3>
         <p>La orden de compra solicitada no existe.</p>
         <button 
-          onClick={() => navigate('/ordenes-compra')}
+          onClick={() => navigate('/orden-compra')}
           className="btn btn-primary"
           style={{ marginTop: '1rem' }}
         >
@@ -109,7 +109,7 @@ const EliminarOrdenCompra = () => {
       <div className="ordenes-compra-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button 
-            onClick={() => navigate('/ordenes-compra')}
+            onClick={() => navigate('/orden-compra')}
             className="btn btn-secondary"
             style={{ marginRight: '1rem', padding: '0.5rem' }}
           >
@@ -286,7 +286,7 @@ const EliminarOrdenCompra = () => {
         {/* Botones de acción */}
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
           <button 
-            onClick={() => navigate('/ordenes-compra')}
+            onClick={() => navigate('/orden-compra')}
             className="btn btn-secondary"
           >
             Cancelar

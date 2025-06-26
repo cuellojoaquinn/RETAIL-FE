@@ -23,6 +23,13 @@ const OrdenesCompra = () => {
 
   const navigate = useNavigate();
 
+  const estadoMap: Record<string, string> = {
+    Pendiente: 'PENDIENTE',
+    Enviada: 'ENVIADO',
+    Finalizada: 'FINALIZADO',
+    Cancelada: 'CANCELADO',
+  };
+
   // Cargar órdenes de compra al montar el componente
   useEffect(() => {
     cargarOrdenesCompra();
@@ -62,15 +69,15 @@ const OrdenesCompra = () => {
   };
 
   const handleAgregar = () => {
-    navigate('/ordenes-compra/alta');
+    navigate('/orden-compra/alta');
   };
 
   const handleEditar = (orden: OrdenCompra) => {
-    navigate(`/ordenes-compra/editar/${orden.id}`);
+    navigate(`/orden-compra/editar/${orden.id}`);
   };
 
   const handleEliminar = (orden: OrdenCompra) => {
-    navigate(`/ordenes-compra/eliminar/${orden.id}`);
+    navigate(`/orden-compra/eliminar/${orden.id}`);
   };
 
   const confirmarEliminacion = async () => {
@@ -103,7 +110,8 @@ const OrdenesCompra = () => {
   const ordenesFiltradas = ordenesCompra
     .filter(o => {
       if (filtroSeleccionado === 'Todas') return true;
-      return o.estadoOrden.toLowerCase() === filtroSeleccionado.toLowerCase();
+      const estadoFiltro = estadoMap[filtroSeleccionado] || filtroSeleccionado.toUpperCase();
+      return o.estadoOrden.toUpperCase() === estadoFiltro;
     })
     .filter(o => {
       if (!terminoBusqueda) return true;
@@ -211,9 +219,6 @@ const OrdenesCompra = () => {
                       <button className="btn-accion editar" onClick={() => handleEditar(o)}>
                         Editar
                       </button>
-                      <button className="btn-accion eliminar" onClick={() => handleEliminar(o)}>
-                        Eliminar
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -232,7 +237,7 @@ const OrdenesCompra = () => {
             </div>
             <p style={{ marginBottom: '1.5rem' }}>
               ¿Estás seguro de que deseas eliminar la orden de compra? Esta acción no se puede deshacer. 
-              La orden de compra <strong>"{ordenAEliminar?.numero}"</strong> será eliminada permanentemente.
+              La orden de compra seleccionada será eliminada permanentemente.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button 

@@ -77,7 +77,7 @@ export const API_ENDPOINTS = {
   
   // Órdenes de compra
   ORDENES_COMPRA: 'orden-compra',
-  ORDEN_COMPRA_BY_ID: (id: string | number) => `ordenes-compra/${id}`,
+  ORDEN_COMPRA_BY_ID: (id: string | number) => `orden-compra/${id}`,
   
   // Proveedores
   PROVEEDORES: 'proveedores',
@@ -91,11 +91,12 @@ export const API_ENDPOINTS = {
 
 // Función para manejar errores de API de forma consistente
 export const handleApiError = async (response: Response): Promise<never> => {
-  let errorMessage = 'Error en la petición';
-  
+  console.log(response);
+  let errorMessage = 'Error en la petición';  
   try {
     const errorData = await response.json();
-    errorMessage = errorData.message || errorData.error || errorMessage;
+
+    errorMessage = errorData.mensaje || errorData.message || errorData.error || errorMessage;
   } catch {
     // Si no se puede parsear el JSON, usar el status text
     errorMessage = response.statusText || errorMessage;

@@ -167,11 +167,15 @@ const AltaOrdenCompra = () => {
 
     try {
       await ordenCompraService.save(payload);
-      navigate('/ordenes-compra', { 
+      navigate('/orden-compra', { 
         state: { mensaje: 'Orden de compra creada exitosamente' }
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar la orden de compra');
+      let msg = 'Error al guardar la orden de compra';
+      if (err instanceof Error && err.message) {
+        msg = err.message.replace(/\s*\(\d+\)$/, '');
+      }
+      setError(msg);
     } finally {
       setGuardando(false);
     }
@@ -189,7 +193,7 @@ const AltaOrdenCompra = () => {
       <div className="ordenes-compra-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button 
-            onClick={() => navigate('/ordenes-compra')}
+            onClick={() => navigate('/orden-compra')}
             className="btn btn-secondary"
             style={{ marginRight: '1rem', padding: '0.5rem' }}
           >
@@ -284,7 +288,7 @@ const AltaOrdenCompra = () => {
         )}
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-          <button onClick={() => navigate('/ordenes-compra')} className="btn btn-secondary">Cancelar</button>
+          <button onClick={() => navigate('/orden-compra')} className="btn btn-secondary">Cancelar</button>
           <button onClick={handleGuardar} disabled={guardando || !formulario.articuloId || formulario.cantidad <= 0} className="btn btn-success">
             {guardando ? 'Creando orden...' : 'Crear orden de compra'}
           </button>

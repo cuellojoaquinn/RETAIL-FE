@@ -265,6 +265,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
                 const proveedorActual = proveedores.find(p => p.id.toString() === form.proveedorPredeterminado);
                 const nombreProveedor = proveedorActual?.nombreProveedor || `(ID: ${form.proveedorPredeterminado})`;
                 
+                //console.log(datosIniciales.proveedorPredeterminado.nombre);
                 return (
                   <div style={{
                     backgroundColor: '#e8f0fe',
@@ -282,7 +283,7 @@ const FormularioArticulo = ({ modo, datosIniciales, onGuardar }: Props) => {
                     }}>
                       Proveedor predeterminado
                     </strong>
-                    {nombreProveedor}
+                    {datosIniciales.proveedorPredeterminado.nombre}
                   </div>
                 );
               })()}

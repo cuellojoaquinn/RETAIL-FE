@@ -5,7 +5,8 @@ import CampoTexto from '../../components/CampoText';
 import { MdArrowBack, MdShoppingCart, MdWarning, MdCheckCircle, MdCancel, MdSend, MdRefresh, MdSchedule, MdEdit, MdPerson, MdInventory, MdDescription } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
 import ordenCompraService from '../../services/ordenCompra.service.real';
-import type { OrdenCompra } from '../../services/mocks/ordenCompra.service';
+import type { OrdenCompra } from '../../services/ordenCompra.service.real';
+import proveedorServiceReal from '../../services/proveedor.service.real';
 
 interface Proveedor {
   id: number;
@@ -171,9 +172,7 @@ const EditarOrdenCompra = () => {
   const [busquedaArticulos, setBusquedaArticulos] = useState('');
   const [articuloSeleccionado, setArticuloSeleccionado] = useState<Articulo | null>(null);
   const [formulario, setFormulario] = useState({
-    cantidad: 0,
-    precioUnitario: 0,
-    observaciones: ''
+    cantidad: 0
   });
   const [guardando, setGuardando] = useState(false);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
@@ -181,10 +180,10 @@ const EditarOrdenCompra = () => {
 
   // Estados del progreso
   const estados = [
-    { nombre: 'Pendiente', activo: ordenCompra?.estado === 'Pendiente', icono: <MdSchedule /> },
-    { nombre: 'Enviada', activo: ordenCompra?.estado === 'Enviada', icono: <MdShoppingCart /> },
-    { nombre: 'Finalizada', activo: ordenCompra?.estado === 'Finalizada', icono: <MdCheckCircle /> },
-    { nombre: 'Cancelada', activo: ordenCompra?.estado === 'Cancelada', icono: <MdCancel /> }
+    { nombre: 'Pendiente', activo: ordenCompra?.estadoOrden?.toUpperCase() === 'PENDIENTE', icono: <MdSchedule /> },
+    { nombre: 'Enviada', activo: ordenCompra?.estadoOrden?.toUpperCase() === 'ENVIADO', icono: <MdShoppingCart /> },
+    { nombre: 'Finalizada', activo: ordenCompra?.estadoOrden?.toUpperCase() === 'FINALIZADO', icono: <MdCheckCircle /> },
+    { nombre: 'Cancelada', activo: ordenCompra?.estadoOrden?.toUpperCase() === 'CANCELADA', icono: <MdCancel /> }
   ];
 
   useEffect(() => {
@@ -200,30 +199,29 @@ const EditarOrdenCompra = () => {
           return;
         }
 
-        if (orden.estado !== 'Pendiente') {
-          setError('Solo se pueden editar órdenes en estado Pendiente');
-          return;
-        }
-
         setOrdenCompra(orden);
         setFormulario({
-          proveedorId: orden.proveedor.id,
-          articuloId: orden.articulo.id,
-          cantidad: orden.cantidad,
-          precioUnitario: orden.precioUnitario,
-          tiempoEntrega: orden.tiempoEntrega || 0,
-          puntoPedido: orden.puntoPedido || 0,
-          costoOrden: orden.costoOrden || 0,
-          observaciones: orden.observaciones || ''
+          cantidad: orden.cantidad
         });
 
         // Cargar artículos del proveedor
-        const articulosProveedor = articulosMock.filter(a => a.proveedorId === orden.proveedor.id);
+        const articulosProveedorRaw = await proveedorServiceReal.getArticulosPorProveedor(orden.proveedorId);
+        const articulosProveedor = articulosProveedorRaw.map(a => ({
+          id: a.articuloId ?? a.id ?? 0,
+          codigo: a.codigo ?? '',
+          nombre: a.nombre ?? a.nombreArticulo ?? '',
+          descripcion: a.descripcion ?? a.descripcionArticulo ?? '',
+          precio: a.precio ?? a.precioUnitario ?? 0,
+          stock: a.stock ?? 0,
+          puntoPedido: a.puntoPedido ?? 0,
+          proveedorId: a.proveedorId,
+          esPredeterminado: a.esPredeterminado ?? false
+        }));
         setArticulos(articulosProveedor);
         setArticulosFiltrados(articulosProveedor);
 
         // Seleccionar el artículo actual
-        const articuloActual = articulosProveedor.find(a => a.id === orden.articulo.id);
+        const articuloActual = articulosProveedor.find(a => a.id === orden.articuloId);
         if (articuloActual) {
           setArticuloSeleccionado(articuloActual);
         }
@@ -266,7 +264,6 @@ const EditarOrdenCompra = () => {
     setArticuloSeleccionado(articulo);
     setFormulario(prev => ({
       ...prev,
-      precioUnitario: articulo.precio,
       cantidad: 0
     }));
     setMostrarModalArticulos(false);
@@ -288,13 +285,11 @@ const EditarOrdenCompra = () => {
   };
 
   const calcularTotal = () => {
-    const costoPedido = formulario.cantidad * formulario.precioUnitario;
-    const costoOrden = ordenCompra?.costoOrden || 5000;
-    return costoPedido + costoOrden;
+    return 0; // O ajusta según la lógica real
   };
 
   const esFormularioValido = () => {
-    return formulario.cantidad > 0 && formulario.precioUnitario > 0;
+    return formulario.cantidad > 0;
   };
 
   const handleGuardar = async () => {
@@ -305,16 +300,14 @@ const EditarOrdenCompra = () => {
       
       // Preparar datos para actualizar
       const datosActualizados = {
-        cantidad: formulario.cantidad,
-        precioUnitario: formulario.precioUnitario,
-        observaciones: formulario.observaciones,
-        total: calcularTotal()
+        estadoOrden: ordenCompra.estadoOrden,
+        cantidad: formulario.cantidad
       };
       
-      await ordenCompraService.updateOrdenCompra(ordenCompra.id, datosActualizados);
+      await ordenCompraService.updateOrden(ordenCompra.id, datosActualizados);
       
       alert('Orden de compra actualizada exitosamente');
-      navigate('/ordenes-compra');
+      navigate('/orden-compra');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error actualizando la orden de compra');
@@ -331,22 +324,26 @@ const EditarOrdenCompra = () => {
       setCambiandoEstado(true);
       
       // Determinar el siguiente estado
-      let nuevoEstado: OrdenCompra['estado'];
-      switch (ordenCompra.estado) {
-        case 'Pendiente':
-          nuevoEstado = 'Enviada';
+      let nuevoEstado: OrdenCompra['estadoOrden'];
+      switch (ordenCompra.estadoOrden?.toUpperCase()) {
+        case 'PENDIENTE':
+          nuevoEstado = 'ENVIADO';
           break;
-        case 'Enviada':
-          nuevoEstado = 'Finalizada';
+        case 'ENVIADO':
+          nuevoEstado = 'FINALIZADO';
           break;
         default:
-          nuevoEstado = ordenCompra.estado;
+          nuevoEstado = ordenCompra.estadoOrden;
       }
 
-      await ordenCompraService.cambiarEstado(ordenCompra.id, nuevoEstado);
+      if (nuevoEstado === 'ENVIADO') {
+        await ordenCompraService.updateOrden(ordenCompra.id, { estadoOrden: nuevoEstado, cantidad: formulario.cantidad });
+      } else {
+        await ordenCompraService.updateOrden(ordenCompra.id, { estadoOrden: nuevoEstado });
+      }
       
       // Actualizar el estado local
-      setOrdenCompra(prev => prev ? { ...prev, estado: nuevoEstado } : null);
+      setOrdenCompra(prev => prev ? { ...prev, estadoOrden: nuevoEstado } : null);
       
       alert(`Estado cambiado a: ${nuevoEstado}`);
       
@@ -361,11 +358,11 @@ const EditarOrdenCompra = () => {
   const obtenerSiguienteEstado = () => {
     if (!ordenCompra) return null;
     
-    switch (ordenCompra.estado) {
-      case 'Pendiente':
-        return 'Enviada';
-      case 'Enviada':
-        return 'Finalizada';
+    switch (ordenCompra.estadoOrden?.toUpperCase()) {
+      case 'PENDIENTE':
+        return 'ENVIADO';
+      case 'ENVIADO':
+        return 'FINALIZADO';
       default:
         return null;
     }
@@ -387,7 +384,7 @@ const EditarOrdenCompra = () => {
         <h3>Error</h3>
         <p>{error}</p>
         <button 
-          onClick={() => navigate('/ordenes-compra')}
+          onClick={() => navigate('/orden-compra')}
           className="btn btn-primary"
           style={{ marginTop: '1rem' }}
         >
@@ -404,7 +401,7 @@ const EditarOrdenCompra = () => {
         <h3>Orden no encontrada</h3>
         <p>La orden de compra solicitada no existe.</p>
         <button 
-          onClick={() => navigate('/ordenes-compra')}
+          onClick={() => navigate('/orden-compra')}
           className="btn btn-primary"
           style={{ marginTop: '1rem' }}
         >
@@ -415,7 +412,7 @@ const EditarOrdenCompra = () => {
   }
 
   const siguienteEstado = obtenerSiguienteEstado();
-  const camposDeshabilitados = ordenCompra.estado !== 'Pendiente';
+  const camposDeshabilitados = ['ENVIADO', 'ENVIADA', 'FINALIZADA', 'FINALIZADO'].includes(ordenCompra?.estadoOrden?.toUpperCase() || '');
 
   return (
     <div className="ordenes-compra-container">
@@ -423,7 +420,7 @@ const EditarOrdenCompra = () => {
       <div className="ordenes-compra-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button 
-            onClick={() => navigate('/ordenes-compra')}
+            onClick={() => navigate('/orden-compra')}
             className="btn btn-secondary"
             style={{ marginRight: '1rem', padding: '0.5rem' }}
           >
@@ -440,6 +437,28 @@ const EditarOrdenCompra = () => {
             <MdEdit />
             {cambiandoEstado ? 'Cambiando estado...' : `Cambiar a ${obtenerSiguienteEstado() || 'Finalizado'}`}
           </button>
+          {ordenCompra.estadoOrden?.toUpperCase() === 'PENDIENTE' && (
+            <button
+              onClick={async () => {
+                setCambiandoEstado(true);
+                try {
+                  await ordenCompraService.updateOrden(ordenCompra.id, { estadoOrden: 'CANCELADO', cantidad: formulario.cantidad });
+                  setOrdenCompra(prev => prev ? { ...prev, estadoOrden: 'CANCELADO' } : null);
+                  alert('Orden de compra cancelada');
+                  navigate('/orden-compra');
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Error cancelando la orden de compra');
+                } finally {
+                  setCambiandoEstado(false);
+                }
+              }}
+              className="btn"
+              style={{ backgroundColor: '#dc3545', color: 'white', marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              disabled={cambiandoEstado}
+            >
+              <MdWarning style={{ fontSize: '1.2rem' }} /> Cancelar orden
+            </button>
+          )}
         </div>
       </div>
 
@@ -456,7 +475,7 @@ const EditarOrdenCompra = () => {
               <label className="formulario-label">Número de orden</label>
               <input 
                 type="text"
-                value={ordenCompra.numero}
+                value={ordenCompra.id}
                 readOnly
                 className="formulario-input"
                 style={{ backgroundColor: '#e9ecef' }}
@@ -466,7 +485,7 @@ const EditarOrdenCompra = () => {
               <label className="formulario-label">Fecha de creación</label>
               <input 
                 type="text"
-                value={new Date(ordenCompra.fechaCreacion).toLocaleDateString('es-ES')}
+                value={new Date(ordenCompra.fechaCreacionOrdenCompra).toLocaleDateString('es-ES')}
                 readOnly
                 className="formulario-input"
                 style={{ backgroundColor: '#e9ecef' }}
@@ -478,7 +497,7 @@ const EditarOrdenCompra = () => {
             <label className="formulario-label">Proveedor</label>
             <input 
               type="text"
-              value={ordenCompra.proveedor.nombre}
+              value={ordenCompra.proveedorNombre}
               readOnly
               className="formulario-input"
               style={{ backgroundColor: '#e9ecef' }}
@@ -488,15 +507,9 @@ const EditarOrdenCompra = () => {
           <div className="formulario-campo">
             <label className="formulario-label">Estado actual</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span className={`estado-badge estado-${ordenCompra.estado.toLowerCase()}`}>
-                {ordenCompra.estado}
+              <span className={`estado-badge estado-${ordenCompra.estadoOrden.toLowerCase()}`}>
+                {ordenCompra.estadoOrden}
               </span>
-              {ordenCompra.estado !== 'Pendiente' && (
-                <div className="alerta alerta-warning">
-                  <MdWarning style={{ marginRight: '0.5rem' }} />
-                  Solo se pueden editar órdenes en estado Pendiente
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -521,14 +534,37 @@ const EditarOrdenCompra = () => {
         </div>
 
         {/* Formulario de edición */}
-        {ordenCompra.estado === 'Pendiente' && (
+        {camposDeshabilitados ? (
+          <div className="formulario-seccion">
+            <h3>
+              <MdInventory />
+              Detalle de la orden de compra
+            </h3>
+            <div className="alerta alerta-info">
+              <div>
+                <h4 style={{ margin: '0 0 0.5rem 0' }}>{articuloSeleccionado?.nombre}</h4>
+                <p style={{ margin: '0 0 0.25rem 0', color: '#666' }}>
+                  Código: {articuloSeleccionado?.codigo}
+                </p>
+                <p style={{ margin: '0', color: '#666' }}>
+                  Precio: ${articuloSeleccionado?.precio?.toLocaleString()}
+                </p>
+                <p style={{ margin: '0', color: '#666' }}>
+                  Cantidad: {formulario.cantidad}
+                </p>
+                <p style={{ margin: '0', color: '#666' }}>
+                  Total: ${(formulario.cantidad * (articuloSeleccionado ? articuloSeleccionado.precio : 0)).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
           <>
             <div className="formulario-seccion">
               <h3>
                 <MdInventory />
                 Cambiar artículo
               </h3>
-              
               {articuloSeleccionado ? (
                 <div className="alerta alerta-success">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -544,6 +580,7 @@ const EditarOrdenCompra = () => {
                     <button 
                       onClick={() => setMostrarModalArticulos(true)}
                       className="btn btn-secondary"
+                      disabled={camposDeshabilitados}
                     >
                       Cambiar
                     </button>
@@ -553,18 +590,17 @@ const EditarOrdenCompra = () => {
                 <button 
                   onClick={() => setMostrarModalArticulos(true)}
                   className="btn btn-primary"
+                  disabled={camposDeshabilitados}
                 >
                   Seleccionar artículo
                 </button>
               )}
             </div>
-
             <div className="formulario-seccion">
               <h3>
                 <MdDescription />
                 Modificar pedido
               </h3>
-              
               <div style={{ 
                 padding: '1.5rem',
                 backgroundColor: '#f8f9fa',
@@ -578,6 +614,7 @@ const EditarOrdenCompra = () => {
                       value={formulario.cantidad}
                       onChange={(e) => handleCantidadChange(Number(e.target.value))}
                       className="formulario-input"
+                      disabled={camposDeshabilitados}
                     />
                     {advertenciaPuntoPedido && (
                       <div className="alerta alerta-warning" style={{ marginTop: '0.5rem' }}>
@@ -585,55 +622,33 @@ const EditarOrdenCompra = () => {
                       </div>
                     )}
                   </div>
-                  <div className="formulario-campo">
-                    <label className="formulario-label">Precio unitario</label>
-                    <input 
-                      type="number"
-                      value={formulario.precioUnitario}
-                      onChange={(e) => setFormulario(prev => ({ ...prev, precioUnitario: Number(e.target.value) }))}
-                      className="formulario-input"
-                    />
-                  </div>
                 </div>
-
-                <div className="formulario-campo">
-                  <label className="formulario-label">Observaciones</label>
-                  <textarea
-                    value={formulario.observaciones}
-                    onChange={(e) => setFormulario(prev => ({ ...prev, observaciones: e.target.value }))}
-                    placeholder="Agregue observaciones adicionales..."
-                    rows={3}
-                    className="formulario-textarea"
-                  />
-                </div>
-
                 <div className="alerta alerta-success">
                   <h4 style={{ margin: '0 0 0.5rem 0', color: '#155724' }}>Total de la orden de compra</h4>
                   <p style={{ margin: '0', fontSize: '1.25rem', fontWeight: 'bold', color: '#155724' }}>
                     ${calcularTotal().toLocaleString()}
                   </p>
                   <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: '#155724' }}>
-                    (Costo del pedido: ${(formulario.cantidad * formulario.precioUnitario).toLocaleString()} + 
-                    Costo de la orden: ${ordenCompra.costoOrden.toLocaleString()})
+                    (Costo del pedido: ${(formulario.cantidad * (articuloSeleccionado ? articuloSeleccionado.precio : 0)).toLocaleString()} + 
+                    Costo de la orden: ${ordenCompra.montoTotal.toLocaleString()})
                   </p>
                 </div>
               </div>
             </div>
-
             {/* Botones de acción */}
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button 
-                onClick={() => navigate('/ordenes-compra')}
+                onClick={() => navigate('/orden-compra')}
                 className="btn btn-secondary"
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleGuardar}
-                disabled={!esFormularioValido() || guardando}
+                disabled={guardando || !esFormularioValido() || camposDeshabilitados}
                 className="btn btn-success"
               >
-                {guardando ? 'Guardando...' : 'Guardar cambios'}
+                {guardando ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </>

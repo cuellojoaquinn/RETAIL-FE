@@ -297,22 +297,37 @@ const EditarProveedor = () => {
     }
   };
 
-  const eliminarArticulo = (codArticulo: string) => {
+  const eliminarArticulo = async (codArticulo: string) => {
     // No permitir eliminar el último artículo
     if (articulos.length <= 1) {
       setError('Un proveedor debe tener al menos un artículo asociado.');
-      // Opcional: limpiar el error después de un tiempo
       setTimeout(() => setError(''), 5000);
       return;
     }
 
-    // Filtrar para eliminar el artículo
+    if (!proveedor) {
+      setError('No se encontró el proveedor.');
+      return;
+    }
+
+    try {
+      await fetch('http://localhost:8080/proveedores', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idProveedor: proveedor.id,
+          idArticulo: Number(codArticulo)
+        })
+      });
+    } catch (err) {
+      setError('Error al eliminar el artículo del proveedor.');
+      return;
+    }
+
     setArticulos(prev => prev.filter(art => {
       const id = art.articuloId?.toString() || art.codigo || '';
       return id !== codArticulo;
     }));
-    
-    // Eliminar también su formulario asociado
     setFormArticulos(prev => {
       const nuevosFormularios = { ...prev };
       delete nuevosFormularios[codArticulo];

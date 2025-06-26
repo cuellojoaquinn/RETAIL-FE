@@ -193,7 +193,7 @@ class ProveedorServiceReal {
   }
 
   async darDeBaja(id: number): Promise<Proveedor | void> {
-    const response = await apiPut(`${API_ENDPOINTS.PROVEEDORES}/baja/${id}`, {});
+    const response = await apiPut(`proveedores/${id}/baja`, {});
     if (!isSuccessfulResponse(response)) await handleApiError(response);
     return await safeJsonResponse<Proveedor>(response);
   }

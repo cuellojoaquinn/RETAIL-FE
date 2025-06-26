@@ -12,7 +12,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   const items = [
-    { icon: <MdRequestQuote />, label: "Orden de compra", path: "/ordenes-compra" },
+    { icon: <MdRequestQuote />, label: "Orden de compra", path: "/orden-compra" },
     { icon: <MdPeopleAlt />, label: "Proveedores", path: "/proveedores" },
     { icon: <MdInventory />, label: "Articulos", path: "/articulos" },
     { icon: <MdShoppingCart />, label: "Ventas", path: "/ventas" },
