@@ -20,7 +20,7 @@ const AltaArticulo = () => {
         costoVenta: parseFloat(articulo.costoVenta),
         stockActual: parseInt(articulo.stockActual),
         produccionDiaria: parseInt(articulo.produccionDiaria),
-        z: parseInt(articulo.z),
+        z: parseFloat(articulo.z),
         desviacionEstandar: parseInt(articulo.desviacionEstandar),
       };
 
