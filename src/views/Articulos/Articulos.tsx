@@ -354,6 +354,36 @@ const Articulos = () => {
         </div>
       </div>
       
+      {/* Leyenda de colores */}
+      <div style={{ 
+        marginBottom: '1rem', 
+        padding: '1rem', 
+        backgroundColor: '#f8f9fa', 
+        borderRadius: '8px',
+        border: '1px solid #dee2e6',
+        fontSize: '0.875rem'
+      }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: '#495057' }}>Leyenda de colores:</h4>
+        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#28a745', fontWeight: 'bold' }}>■</span>
+            <span>Stock normal</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#fd7e14', fontWeight: 'bold' }}>■</span>
+            <span>Por debajo del punto de pedido</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#dc3545', fontWeight: 'bold' }}>■</span>
+            <span>Por debajo del stock de seguridad</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#ffc107', fontWeight: 'bold' }}>■</span>
+            <span>Sin stock</span>
+          </div>
+        </div>
+      </div>
+      
       {/* Tabla con paginación */}
       <div style={{ marginBottom: '1rem' }}>
         <TablaGenerica
@@ -373,17 +403,79 @@ const Articulos = () => {
             { header: "Precio", render: (a) => `$${(a.costoVenta || 0).toLocaleString()}` },
             { 
               header: "Inventario", 
+              render: (a) => {
+                const stockActual = a.stockActual || 0;
+                const stockSeguridad = a.stockSeguridad || 0;
+                const puntoPedido = a.puntoPedido || 0;
+                
+                let color = '#28a745'; // Verde por defecto
+                if (stockActual === 0) {
+                  color = '#ffc107'; // Amarillo si no hay stock
+                } else if (stockActual <= stockSeguridad) {
+                  color = '#dc3545'; // Rojo si está por debajo del stock de seguridad
+                } else if (stockActual <= puntoPedido) {
+                  color = '#fd7e14'; // Naranja si está por debajo del punto de pedido
+                }
+                
+                return (
+                  <span style={{ 
+                    color: color,
+                    fontWeight: 'bold'
+                  }}
+                  title={`Stock actual: ${stockActual} | Stock seguridad: ${stockSeguridad} | Punto pedido: ${puntoPedido}`}
+                  >
+                    {stockActual}
+                  </span>
+                );
+              } 
+            },
+            { header: "Stock de seguridad", render: (a) => a.stockSeguridad || 0 },
+            { 
+              header: "Punto de pedido", 
               render: (a) => (
-                <span style={{ 
-                  color: (a.stockActual || 0) <= (a.stockSeguridad || 0) ? '#dc3545' : 
-                         (a.stockActual || 0) === 0 ? '#ffc107' : '#28a745',
-                  fontWeight: 'bold'
-                }}>
-                  {a.stockActual || 0}
+                <span 
+                  style={{ 
+                    color: (a.stockActual || 0) <= (a.puntoPedido || 0) ? '#dc3545' : '#28a745',
+                    fontWeight: 'bold',
+                    cursor: 'help'
+                  }}
+                  title={`Nivel de inventario al cual se debe realizar un pedido. Stock actual: ${a.stockActual || 0}`}
+                >
+                  {a.puntoPedido || 0}
                 </span>
               ) 
             },
-            { header: "Stock de seguridad", render: (a) => a.stockSeguridad || 0 },
+            { 
+              header: "Lote óptimo", 
+              render: (a) => (
+                <span 
+                  style={{ 
+                    color: '#007bff',
+                    fontWeight: 'bold',
+                    cursor: 'help'
+                  }}
+                  title="Cantidad óptima a pedir para minimizar costos totales"
+                >
+                  {a.loteOptimo || 0}
+                </span>
+              ) 
+            },
+            { 
+              header: "CGI", 
+              render: (a) => (
+                <span 
+                  style={{ 
+                    color: '#6f42c1',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    cursor: 'help'
+                  }}
+                  title="Costo de Gestión de Inventario - Costo total de mantener el inventario"
+                >
+                  {a.cgi || 0}
+                </span>
+              ) 
+            },
             { header: "Demanda", render: (a) => (a.demandaArticulo || 0).toLocaleString() },
             { header: "Costo almacenamiento", render: (a) => `$${(a.costoAlmacenamiento || 0).toFixed(2)}` },
           ]}
