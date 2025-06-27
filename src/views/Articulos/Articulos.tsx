@@ -429,6 +429,7 @@ const Articulos = () => {
                 );
               } 
             },
+            { header: "Inventario máximo", render: (a) => a.inventarioMaximo ?? '-' },
             { header: "Stock de seguridad", render: (a) => a.stockSeguridad || 0 },
             { 
               header: "Punto de pedido", 

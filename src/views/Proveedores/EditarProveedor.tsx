@@ -267,7 +267,8 @@ const EditarProveedor = () => {
         proveedorArticulos: articulos.map(art => {
           const codArticulo = art.articuloId?.toString() || art.codigo || '';
           const formArticulo = formArticulos[codArticulo] || {};
-          
+          const tipoModelo = convertirTipoModeloFrontendToBackend(formArticulo.tipoModelo || art.tipoModelo || '');
+          const isLoteFijo = (formArticulo.tipoModelo || art.tipoModelo) === 'Lote fijo';
           return {
             demoraEntrega: formArticulo.demoraEntrega || art.demoraEntrega || 0,
             precioUnitario: formArticulo.precioUnitario || art.precioUnitario || art.precio || 0,
@@ -277,8 +278,8 @@ const EditarProveedor = () => {
               nombre: art.nombreArticulo || art.nombre || 'Sin nombre',
               codArticulo: art.articuloId || parseInt(art.codigo || '0')
             },
-            tiempoRevision: formArticulo.tiempoRevision || art.tiempoRevision || 0,
-            tipoModelo: convertirTipoModeloFrontendToBackend(formArticulo.tipoModelo || art.tipoModelo || '')
+            tiempoRevision: isLoteFijo ? 0 : (formArticulo.tiempoRevision || art.tiempoRevision || 0),
+            tipoModelo
           };
         })
       };
