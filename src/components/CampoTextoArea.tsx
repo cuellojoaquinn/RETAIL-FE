@@ -5,6 +5,7 @@ interface Props {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   required?: boolean;
+  error?: string;
 }
 
 const CampoTextoArea = ({
@@ -14,6 +15,7 @@ const CampoTextoArea = ({
   onChange,
   placeholder = "",
   required = false,
+  error,
 }: Props) => (
   <div className='campo full'>
     <label>
@@ -26,7 +28,15 @@ const CampoTextoArea = ({
       onChange={onChange}
       placeholder={placeholder}
       required={required}
+      style={{
+        border: error ? '1px solid #dc3545' : undefined
+      }}
     />
+    {error && (
+      <div style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+        {error}
+      </div>
+    )}
   </div>
 );
 

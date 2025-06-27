@@ -22,7 +22,7 @@ interface FormArticulo {
 }
 
 const AltaProveedor = () => {
-  const [proveedor, setProveedor] = useState({ nombre: '', direccion: '' });
+  const [proveedor, setProveedor] = useState({ nombre: '' });
   const [articulos, setArticulos] = useState<FormArticulo[]>([]);
   const [articulosDisponibles, setArticulosDisponibles] = useState<ServiceArticulo[]>([]);
   const [articuloSeleccionado, setArticuloSeleccionado] = useState<ServiceArticulo | null>(null);
@@ -80,8 +80,8 @@ const AltaProveedor = () => {
         return false;
       }
 
-      // Validar tiempo de revisión (debe ser un número positivo)
-      if (!articulo.tiempoRevision || isNaN(Number(articulo.tiempoRevision)) || Number(articulo.tiempoRevision) <= 0) {
+      // Validar tiempo de revisión (debe ser un número positivo, excepto para Lote Fijo)
+      if (articulo.tipoModelo !== 'Lote Fijo' && (!articulo.tiempoRevision || isNaN(Number(articulo.tiempoRevision)) || Number(articulo.tiempoRevision) <= 0)) {
         return false;
       }
     }
@@ -125,6 +125,14 @@ const AltaProveedor = () => {
     setArticulos(prev => prev.map(art => 
       art.id === id ? { ...art, [field]: value } : art
     ));
+    
+    // Si se cambia el tipo de modelo a "Lote Fijo", establecer tiempo de revisión como "0"
+    if (field === 'tipoModelo' && value === 'Lote Fijo') {
+      setArticulos(prev => prev.map(art => 
+        art.id === id ? { ...art, tiempoRevision: '0' } : art
+      ));
+    }
+    
     // Limpiar errores al corregir
     if (erroresArticulos[String(id)] && erroresArticulos[String(id)][field]) {
       setErroresArticulos(prev => {
@@ -170,7 +178,7 @@ const AltaProveedor = () => {
         erroresArt.cargosPedido = true;
         formValido = false;
       }
-       if (!art.tiempoRevision || isNaN(Number(art.tiempoRevision)) || Number(art.tiempoRevision) <= 0) {
+       if (art.tipoModelo !== 'Lote Fijo' && (!art.tiempoRevision || isNaN(Number(art.tiempoRevision)) || Number(art.tiempoRevision) <= 0)) {
         erroresArt.tiempoRevision = true;
         formValido = false;
       }
@@ -234,17 +242,25 @@ const AltaProveedor = () => {
   );
 
   // Contador de artículos completos
-  const articulosCompletos = articulos.filter(art => 
-    art.tipoModelo && 
-    art.demoraEntrega && 
-    art.precioUnitario && 
-    art.cargosPedido && 
-    art.tiempoRevision &&
-    !isNaN(Number(art.demoraEntrega)) && Number(art.demoraEntrega) > 0 &&
-    !isNaN(Number(art.precioUnitario)) && Number(art.precioUnitario) > 0 &&
-    !isNaN(Number(art.cargosPedido)) && Number(art.cargosPedido) >= 0 &&
-    !isNaN(Number(art.tiempoRevision)) && Number(art.tiempoRevision) > 0
-  ).length;
+  const articulosCompletos = articulos.filter(art => {
+    const camposBasicos = art.tipoModelo && 
+      art.demoraEntrega && 
+      art.precioUnitario && 
+      art.cargosPedido &&
+      !isNaN(Number(art.demoraEntrega)) && Number(art.demoraEntrega) > 0 &&
+      !isNaN(Number(art.precioUnitario)) && Number(art.precioUnitario) > 0 &&
+      !isNaN(Number(art.cargosPedido)) && Number(art.cargosPedido) >= 0;
+    
+    // Para Lote Fijo, no validar tiempo de revisión
+    if (art.tipoModelo === 'Lote Fijo') {
+      return camposBasicos;
+    }
+    
+    // Para Intervalo Fijo, validar tiempo de revisión
+    return camposBasicos && 
+      art.tiempoRevision &&
+      !isNaN(Number(art.tiempoRevision)) && Number(art.tiempoRevision) > 0;
+  }).length;
 
   return (
     <div style={{ padding: '2rem', minHeight: '100vh' }}>
@@ -265,13 +281,6 @@ const AltaProveedor = () => {
             onChange={handleChange} 
             placeholder="Ingrese nombre del proveedor"
             error={!proveedor.nombre.trim() && articulos.length > 0}
-          />
-          <CampoTexto 
-            label="Dirección" 
-            name="direccion" 
-            value={proveedor.direccion} 
-            onChange={handleChange} 
-            placeholder="Ingrese dirección" 
           />
         </div>
       </FormularioSeccion>
@@ -335,7 +344,9 @@ const AltaProveedor = () => {
                     <CampoTexto label="Demora de entrega (días)" name="demoraEntrega" value={articulo.demoraEntrega} onChange={(e) => handleArticuloChange(articulo.id, 'demoraEntrega', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.demoraEntrega} />
                     <CampoTexto label="Precio unitario ($)" name="precioUnitario" value={articulo.precioUnitario} onChange={(e) => handleArticuloChange(articulo.id, 'precioUnitario', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.precioUnitario} />
                     <CampoTexto label="Cargos de pedido ($)" name="cargosPedido" value={articulo.cargosPedido} onChange={(e) => handleArticuloChange(articulo.id, 'cargosPedido', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.cargosPedido} />
-                    <CampoTexto label="Tiempo de revisión (días)" name="tiempoRevision" value={articulo.tiempoRevision} onChange={(e) => handleArticuloChange(articulo.id, 'tiempoRevision', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.tiempoRevision} />
+                    {articulo.tipoModelo !== 'Lote Fijo' && (
+                      <CampoTexto label="Tiempo de revisión (días)" name="tiempoRevision" value={articulo.tiempoRevision} onChange={(e) => handleArticuloChange(articulo.id, 'tiempoRevision', e.target.value)} type="number" error={erroresArticulos[String(articulo.id)]?.tiempoRevision} />
+                    )}
                   
                   </div>
                 </div>

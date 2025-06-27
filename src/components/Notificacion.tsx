@@ -7,7 +7,7 @@ interface Props {
   duracion?: number; // duración en milisegundos (opcional)
 }
 
-const Notificacion = ({ tipo = "info", mensaje, duracion = 3000 }: Props) => {
+const Notificacion = ({ tipo = "info", mensaje, duracion = 7000 }: Props) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {

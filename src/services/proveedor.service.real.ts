@@ -76,8 +76,6 @@ export interface CreateProveedorDTO {
 
 export interface UpdateProveedorDTO {
   nombre: string;
-  direccion?: string;
-  observaciones?: string;
   proveedorArticulos: {
     demoraEntrega: number;
     precioUnitario: number;

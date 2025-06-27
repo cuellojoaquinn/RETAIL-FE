@@ -11,8 +11,6 @@ import { MdEdit, MdArrowBack, MdAdd, MdDelete, MdSave, MdWarning } from 'react-i
 
 interface FormularioProveedor {
   nombre: string;
-  direccion: string;
-  observaciones: string;
 }
 
 interface FormularioArticulo {
@@ -41,9 +39,7 @@ const EditarProveedor = () => {
 
   // Formulario del proveedor
   const [formProveedor, setFormProveedor] = useState<FormularioProveedor>({
-    nombre: '',
-    direccion: '',
-    observaciones: ''
+    nombre: ''
   });
 
   // Formularios de artículos
@@ -51,13 +47,31 @@ const EditarProveedor = () => {
 
   // Función para convertir formato del backend al frontend
   const convertirTipoModeloBackendToFrontend = (tipoModelo: string): string => {
+
     
-    switch (tipoModelo) {
+    if (!tipoModelo || tipoModelo.trim() === '') {
+      return '';
+    }
+    
+    const tipoModeloUpper = tipoModelo.toUpperCase().trim();
+    
+    switch (tipoModeloUpper) {
       case 'LOTE_FIJO':
+      case 'LOTE FIJO':
+      case 'LOTEFIJO':
         return 'Lote fijo';
       case 'INTERVALO_FIJO':
+      case 'INTERVALO FIJO':
+      case 'INTERVALOFIJO':
         return 'Intervalo fijo';
       default:
+        // Si el valor no es reconocido, intentar devolver el valor original
+        // pero asegurarse de que esté en el formato correcto para el frontend
+        if (tipoModelo.toLowerCase().includes('lote')) {
+          return 'Lote fijo';
+        } else if (tipoModelo.toLowerCase().includes('intervalo')) {
+          return 'Intervalo fijo';
+        }
         return tipoModelo;
     }
   };
@@ -95,21 +109,27 @@ const EditarProveedor = () => {
       
       setProveedor(proveedorData);
       setFormProveedor({
-        nombre: proveedorData.nombre || '',
-        direccion: proveedorData.direccion || '',
-        observaciones: proveedorData.observaciones || ''
+        nombre: proveedorData.nombre || ''
       });
 
       // Cargar artículos del proveedor
       const articulosData = await proveedorService.getArticulosPorProveedor(parseInt(id!));
+      console.log('Artículos del proveedor recibidos:', articulosData);
       setArticulos(articulosData);
       
       // Inicializar formularios de artículos
       const formulariosArticulos: { [key: string]: FormularioArticulo } = {};
       articulosData.forEach(art => {
         const codArticulo = art.articuloId?.toString() || art.codigo || '';
-        const tipoModeloConvertido = convertirTipoModeloBackendToFrontend(art.tipoModelo || '');
+        console.log(`Procesando artículo ${codArticulo}:`, art);
+        console.log(`tipoModelo original: "${art.tipoModelo}"`);
         
+        // Asegurar que el tipoModelo se convierta correctamente
+        let tipoModeloConvertido = '';
+        if (art.tipoModelo && art.tipoModelo.trim() !== '') {
+          tipoModeloConvertido = convertirTipoModeloBackendToFrontend(art.tipoModelo);
+        }
+        console.log(`tipoModelo convertido: "${tipoModeloConvertido}"`);
         
         formulariosArticulos[codArticulo] = {
           demoraEntrega: art.demoraEntrega || 0,
@@ -118,7 +138,10 @@ const EditarProveedor = () => {
           tiempoRevision: art.tiempoRevision || 0,
           tipoModelo: tipoModeloConvertido
         };
+        
+        console.log(`Formulario creado para ${codArticulo}:`, formulariosArticulos[codArticulo]);
       });
+      console.log('Formularios finales:', formulariosArticulos);
       setFormArticulos(formulariosArticulos);
       
     } catch (err) {
@@ -160,14 +183,69 @@ const EditarProveedor = () => {
         [campo]: valor
       }
     }));
+    
+    // Si se cambia el tipo de modelo a "Lote Fijo", establecer tiempo de revisión como 0
+    if (campo === 'tipoModelo' && valor === 'Lote fijo') {
+      setFormArticulos(prev => ({
+        ...prev,
+        [codArticulo]: {
+          ...prev[codArticulo],
+          tiempoRevision: 0
+        }
+      }));
+    }
+    
+    // Limpiar error del campo si existe
+    const errorKey = `${campo}_${codArticulo}`;
+    if (errores[errorKey]) {
+      setErrores(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
   };
 
   const validarFormulario = () => {
     const nuevosErrores: { [key: string]: string } = {};
     
+    // Validaciones del formulario del proveedor
     if (!formProveedor.nombre.trim()) {
       nuevosErrores.nombre = 'El nombre es requerido';
     }
+    
+    // Validaciones de los formularios de artículos
+    articulos.forEach(art => {
+      const codArticulo = art.articuloId?.toString() || art.codigo || '';
+      const formArticulo = formArticulos[codArticulo];
+      
+      if (formArticulo) {
+        // Validar demora de entrega
+        if (formArticulo.demoraEntrega <= 0) {
+          nuevosErrores[`demoraEntrega_${codArticulo}`] = 'La demora de entrega debe ser mayor a 0';
+        }
+        
+        // Validar precio unitario
+        if (formArticulo.precioUnitario <= 0) {
+          nuevosErrores[`precioUnitario_${codArticulo}`] = 'El precio unitario debe ser mayor a 0';
+        }
+        
+        // Validar cargos de pedido
+        if (formArticulo.cargosPedido <= 0) {
+          nuevosErrores[`cargosPedido_${codArticulo}`] = 'Los cargos de pedido deben ser mayor a 0';
+        }
+        
+        // Validar tiempo de revisión (específicamente que sea positivo, excepto para Lote fijo)
+        if (formArticulo.tipoModelo !== 'Lote fijo' && formArticulo.tiempoRevision <= 0) {
+          nuevosErrores[`tiempoRevision_${codArticulo}`] = 'El tiempo de revisión debe ser mayor a 0';
+        }
+        
+        // Validar tipo de modelo
+        if (!formArticulo.tipoModelo.trim()) {
+          nuevosErrores[`tipoModelo_${codArticulo}`] = 'El tipo de modelo es requerido';
+        }
+      }
+    });
     
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -186,8 +264,6 @@ const EditarProveedor = () => {
       // Preparar el payload con la misma estructura que AltaProveedor
       const payload = {
         nombre: formProveedor.nombre,
-        direccion: formProveedor.direccion,
-        observaciones: formProveedor.observaciones,
         proveedorArticulos: articulos.map(art => {
           const codArticulo = art.articuloId?.toString() || art.codigo || '';
           const formArticulo = formArticulos[codArticulo] || {};
@@ -455,22 +531,6 @@ const EditarProveedor = () => {
             error={errores.nombre}
             required
           />
-          <CampoTexto
-            label="Dirección"
-            name="direccion"
-            value={formProveedor.direccion}
-            onChange={handleChangeProveedor}
-            placeholder="Ingrese dirección"
-          />
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          <CampoTextoArea
-            label="Observaciones"
-            name="observaciones"
-            value={formProveedor.observaciones}
-            onChange={handleChangeProveedor}
-            placeholder="Observaciones adicionales"
-          />
         </div>
       </FormularioSeccion>
 
@@ -567,6 +627,10 @@ const EditarProveedor = () => {
               const nombreArticulo = articulo.nombreArticulo || articulo.nombre || 'Sin nombre';
               const tipoModeloValue = formArticulos[codArticulo]?.tipoModelo || '';
               
+              console.log(`Renderizando artículo ${codArticulo}:`);
+              console.log(`  - tipoModeloValue: "${tipoModeloValue}"`);
+              console.log(`  - formArticulos[${codArticulo}]:`, formArticulos[codArticulo]);
+              console.log(`  - tipoModelo original del artículo: "${articulo.tipoModelo}"`);
               
               return (
                 <div key={codArticulo} style={{ 
@@ -606,6 +670,7 @@ const EditarProveedor = () => {
                       value={(formArticulos[codArticulo]?.precioUnitario ?? 0).toString()}
                       onChange={(e) => handleChangeArticulo(codArticulo, 'precioUnitario', parseFloat(e.target.value))}
                       placeholder="0"
+                      error={errores[`precioUnitario_${codArticulo}`]}
                     />
                     <CampoTexto
                       label="Demora entrega (días)"
@@ -614,6 +679,7 @@ const EditarProveedor = () => {
                       value={(formArticulos[codArticulo]?.demoraEntrega ?? 0).toString()}
                       onChange={(e) => handleChangeArticulo(codArticulo, 'demoraEntrega', parseInt(e.target.value))}
                       placeholder="0"
+                      error={errores[`demoraEntrega_${codArticulo}`]}
                     />
                     <CampoTexto
                       label="Cargos por pedido"
@@ -622,26 +688,30 @@ const EditarProveedor = () => {
                       value={(formArticulos[codArticulo]?.cargosPedido ?? 0).toString()}
                       onChange={(e) => handleChangeArticulo(codArticulo, 'cargosPedido', parseFloat(e.target.value))}
                       placeholder="0"
+                      error={errores[`cargosPedido_${codArticulo}`]}
                     />
-                    <CampoTexto
-                      label="Tiempo revisión (días)"
-                      name="tiempoRevision"
-                      type="number"
-                      value={(formArticulos[codArticulo]?.tiempoRevision ?? 0).toString()}
-                      onChange={(e) => handleChangeArticulo(codArticulo, 'tiempoRevision', parseInt(e.target.value))}
-                      placeholder="0"
-                    />
+                    {formArticulos[codArticulo]?.tipoModelo !== 'Lote fijo' && (
+                      <CampoTexto
+                        label="Tiempo revisión (días)"
+                        name="tiempoRevision"
+                        type="number"
+                        value={(formArticulos[codArticulo]?.tiempoRevision ?? 0).toString()}
+                        onChange={(e) => handleChangeArticulo(codArticulo, 'tiempoRevision', parseInt(e.target.value))}
+                        placeholder="0"
+                        error={errores[`tiempoRevision_${codArticulo}`]}
+                      />
+                    )}
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
                         Tipo de modelo
                       </label>
                       <select
-                        value={tipoModeloValue}
+                        value={tipoModeloValue || convertirTipoModeloBackendToFrontend(articulo.tipoModelo || '')}
                         onChange={(e) => handleChangeArticulo(codArticulo, 'tipoModelo', e.target.value)}
                         style={{
                           width: '100%',
                           padding: '0.75rem',
-                          border: '1px solid #ccc',
+                          border: errores[`tipoModelo_${codArticulo}`] ? '1px solid #dc3545' : '1px solid #ccc',
                           borderRadius: '4px',
                           fontSize: '1rem'
                         }}
@@ -650,6 +720,11 @@ const EditarProveedor = () => {
                         <option value="Lote fijo">Lote fijo</option>
                         <option value="Intervalo fijo">Intervalo fijo</option>
                       </select>
+                      {errores[`tipoModelo_${codArticulo}`] && (
+                        <div style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                          {errores[`tipoModelo_${codArticulo}`]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

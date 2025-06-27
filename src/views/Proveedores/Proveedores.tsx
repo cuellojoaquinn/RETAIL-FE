@@ -7,6 +7,7 @@ import Notificacion from '../../components/Notificacion';
 import CampoTexto from '../../components/CampoText';
 import { MdEdit, MdClose } from 'react-icons/md';
 import proveedorService, { type ProveedorBackend, type ArticuloProveedor } from '../../services/proveedor.service.real';
+import articuloServiceReal from '../../services/articulo.service.real';
 
 interface Articulo {
   nombre: string;
@@ -84,11 +85,34 @@ const Proveedores = () => {
       setError('');
       const articulosData = await proveedorService.getArticulosPorProveedor(proveedorId);
       
+      // Obtener códigos de artículos del servicio de artículos
+      const articulosConCodigos = await Promise.all(
+        articulosData.map(async (art) => {
+          let codigoArticulo = art.codigo || art.articuloId?.toString() || 'Sin código';
+          
+          // Si tenemos articuloId, intentar obtener el código del servicio de artículos
+          if (art.articuloId && !art.codigo) {
+            try {
+              const articuloCompleto = await articuloServiceReal.findById(art.articuloId);
+              if (articuloCompleto && articuloCompleto.codArticulo) {
+                codigoArticulo = articuloCompleto.codArticulo.toString();
+              }
+            } catch (error) {
+              console.warn(`No se pudo obtener el código del artículo ${art.articuloId}:`, error);
+            }
+          }
+          
+          return {
+            ...art,
+            codigoArticulo
+          };
+        })
+      );
       
       // Transformar los datos al formato esperado por la tabla
-      const articulosTransformados: Articulo[] = articulosData.map(art => ({
+      const articulosTransformados: Articulo[] = articulosConCodigos.map(art => ({
         nombre: art.nombreArticulo || art.nombre || 'Sin nombre',
-        codArticulo: art.codigo || art.articuloId?.toString() || 'Sin código',
+        codArticulo: art.codigoArticulo || 'Sin código',
         tipoModelo: art.tipoModelo || 'EOQ',
         demoraEntrega: art.demoraEntrega?.toString() || '0',
         costoUnidad: art.precioUnitario || art.precio || 0,
@@ -110,9 +134,10 @@ const Proveedores = () => {
   useEffect(() => {
     if (busqueda.trim()) {
       const terminoBusqueda = busqueda.toLowerCase();
-      const filtrados = proveedores.filter(prov => 
-        prov.nombre.toLowerCase().includes(terminoBusqueda)
-      );
+      const filtrados = proveedores.filter(prov => {
+        const nombre = prov.nombre || prov.nombreProveedor || `Proveedor ${prov.id}`;
+        return nombre.toLowerCase().includes(terminoBusqueda);
+      });
       setProveedoresFiltrados(filtrados);
     } else {
       setProveedoresFiltrados(proveedores);
@@ -248,7 +273,7 @@ const Proveedores = () => {
                       fontWeight: proveedorSeleccionado?.id === prov.id ? 'bold' : 'normal'
                     }}
                   >
-                    {prov.nombre}
+                    {prov.nombre || prov.nombreProveedor || `Proveedor ${prov.id}`}
                   </button>
                 ))}
               </div>
@@ -258,7 +283,7 @@ const Proveedores = () => {
           {proveedorSeleccionado && (
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3>Artículos del proveedor: {proveedorSeleccionado.nombre}</h3>
+                <h3>Artículos del proveedor: {proveedorSeleccionado.nombre || proveedorSeleccionado.nombreProveedor || `Proveedor ${proveedorSeleccionado.id}`}</h3>
                 <button
                   onClick={() => navigate(`/proveedores/editar/${proveedorSeleccionado.id}`)}
                   style={{

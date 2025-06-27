@@ -101,6 +101,16 @@ export interface CrearArticuloDTO {
   codArticulo?: number;
 }
 
+// Nueva interfaz para artículos de orden de compra
+export interface ArticuloOrdenCompra {
+  idArticulo: number;
+  codArticulo: number;
+  nombreArticulo: string;
+  idProveedorPredeterminado: number;
+  nombreProveedorPredeterminado: string;
+  loteOptimo: number;
+}
+
 class ArticuloServiceReal {
   // GET /articulos - Obtener todos los artículos con paginación
   async findAll(page: number = 0, size: number = 10): Promise<Page<Articulo>> {
@@ -318,7 +328,7 @@ class ArticuloServiceReal {
     }
   }
 
-  // GET /articulos/a-asignar - Obtener artículos para asignar a un proveedor
+  // GET /articulos/a-asignar - Obtener artículos que pueden ser asignados a proveedores
   async findArticulosAAsignar(): Promise<Articulo[]> {
     try {
       const response = await apiGet(API_ENDPOINTS.ARTICULOS_A_ASIGNAR);
@@ -329,7 +339,23 @@ class ArticuloServiceReal {
       
       return await response.json();
     } catch (error) {
-      console.error('Error obteniendo artículos para asignar:', error);
+      console.error('Error obteniendo artículos a asignar:', error);
+      throw error;
+    }
+  }
+
+  // GET /articulos/orden - Obtener artículos para órdenes de compra
+  async getArticulosParaOrdenCompra(): Promise<ArticuloOrdenCompra[]> {
+    try {
+      const response = await apiGet(`${API_ENDPOINTS.ARTICULOS}/orden`);
+      
+      if (!isSuccessfulResponse(response)) {
+        await handleApiError(response);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error obteniendo artículos para orden de compra:', error);
       throw error;
     }
   }

@@ -10,14 +10,14 @@ import {
 } from 'react-icons/md';
 import '../../styles/OrdenDeCompra.css';
 import ordenCompraService from '../../services/ordenCompra.service.real';
+import articuloService, { type ArticuloOrdenCompra } from '../../services/articulo.service.real';
 import proveedorService, { type ProveedorBackend } from '../../services/proveedor.service.real';
-import articuloService, { type Articulo as ServiceArticulo } from '../../services/articulo.service.real';
 import type { CrearOrdenCompraDTO } from '../../services/ordenCompra.service.real';
 
 // La interfaz para el estado del formulario en el componente
 interface OrdenCompraForm {
-  proveedorId: number | null;
   articuloId: number | null;
+  proveedorId: number | null;
   cantidad: number;
 }
 
@@ -25,24 +25,23 @@ const AltaOrdenCompra = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [proveedores, setProveedores] = useState<ProveedorBackend[]>([]);
-  const [articulos, setArticulos] = useState<ServiceArticulo[]>([]);
-  const [articulosFiltrados, setArticulosFiltrados] = useState<ServiceArticulo[]>([]);
+  const [articulosOrdenCompra, setArticulosOrdenCompra] = useState<ArticuloOrdenCompra[]>([]);
+  const [articulosFiltrados, setArticulosFiltrados] = useState<ArticuloOrdenCompra[]>([]);
   const [mostrarModalArticulos, setMostrarModalArticulos] = useState(false);
   const [busquedaArticulos, setBusquedaArticulos] = useState('');
-  const [articuloSeleccionado, setArticuloSeleccionado] = useState<ServiceArticulo | null>(null);
+  const [articuloSeleccionado, setArticuloSeleccionado] = useState<ArticuloOrdenCompra | null>(null);
+  const [proveedores, setProveedores] = useState<ProveedorBackend[]>([]);
   const [formulario, setFormulario] = useState<OrdenCompraForm>({
-    proveedorId: null,
     articuloId: null,
+    proveedorId: null,
     cantidad: 0
   });
   const [guardando, setGuardando] = useState(false);
-  const [advertenciaPuntoPedido, setAdvertenciaPuntoPedido] = useState(false);
 
   // Estados del progreso
   const estados = [
-    { nombre: 'Proveedor', activo: !!formulario.proveedorId, icono: <MdPerson /> },
     { nombre: 'Artículo', activo: !!articuloSeleccionado, icono: <MdInventory /> },
+    { nombre: 'Proveedor', activo: !!formulario.proveedorId, icono: <MdPerson /> },
     { nombre: 'Detalles', activo: !!articuloSeleccionado && formulario.cantidad > 0, icono: <MdDescription /> }
   ];
 
@@ -54,97 +53,62 @@ const AltaOrdenCompra = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await proveedorService.findAll();
-      setProveedores(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando proveedores');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cargarArticulosPorProveedor = async (proveedorId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const articulosProveedor = await proveedorService.getArticulosPorProveedor(proveedorId);
       
-      const articulosAdaptados: ServiceArticulo[] = articulosProveedor.map(ap => ({
-        id: ap.articuloId || 0,
-        codigo: ap.codigo || '',
-        nombre: ap.nombreArticulo || 'Sin Nombre',
-        descripcion: ap.descripcionArticulo || '',
-        costoAlmacenamiento: 0,
-        costoVenta: ap.precioUnitario || 0,
-        stockActual: ap.stock || 0,
-        produccionDiaria: 0,
-        loteOptimo: 0,
-        puntoPedido: ap.puntoPedido || 0,
-        stockSeguridad: 0,
-        demandaAnual: 0,
-        demandaArticulo: 0,
-        z: 0,
-        desviacionEstandar: 0,
-        proveedorPredeterminado: null,
-        codArticulo: parseInt(ap.codigo || '0', 10),
-        cgi: 0,
-        inventarioMaximo: 0,
-        fechaBajaArticulo: null
-      }));
-
-      setArticulos(articulosAdaptados);
-      setArticulosFiltrados(articulosAdaptados);
+      // Cargar artículos y proveedores en paralelo
+      const [articulosData, proveedoresData] = await Promise.all([
+        articuloService.getArticulosParaOrdenCompra(),
+        proveedorService.findAll()
+      ]);
+      
+      setArticulosOrdenCompra(articulosData);
+      setArticulosFiltrados(articulosData);
+      setProveedores(proveedoresData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando artículos');
+      setError(err instanceof Error ? err.message : 'Error cargando datos');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleProveedorChange = (proveedorId: number) => {
-    setFormulario(prev => ({ ...prev, proveedorId, articuloId: null, cantidad: 0 }));
-    setArticuloSeleccionado(null);
-    cargarArticulosPorProveedor(proveedorId);
-    setError(null); // Limpiar errores al cambiar de proveedor
   };
 
   const handleBuscarArticulos = (termino: string) => {
     setBusquedaArticulos(termino);
     
     if (!termino.trim()) {
-      setArticulosFiltrados(articulos);
+      setArticulosFiltrados(articulosOrdenCompra);
       return;
     }
     
-    const filtrados = articulos.filter(
-      articulo => (articulo.nombre || '').toLowerCase().includes(termino.toLowerCase()) || 
-                  (articulo.codigo || '').toLowerCase().includes(termino.toLowerCase())
+    const filtrados = articulosOrdenCompra.filter(
+      articulo => articulo.nombreArticulo.toLowerCase().includes(termino.toLowerCase()) || 
+                  articulo.codArticulo.toString().includes(termino)
     );
     setArticulosFiltrados(filtrados);
   };
 
-  const handleSeleccionarArticulo = (articulo: ServiceArticulo) => {
+  const handleSeleccionarArticulo = (articulo: ArticuloOrdenCompra) => {
     setArticuloSeleccionado(articulo);
-    setFormulario(prev => ({ ...prev, articuloId: articulo.id, cantidad: 0 }));
+    setFormulario(prev => ({ 
+      ...prev, 
+      articuloId: articulo.idArticulo, 
+      proveedorId: articulo.idProveedorPredeterminado,
+      cantidad: articulo.loteOptimo
+    }));
     setMostrarModalArticulos(false);
-    setAdvertenciaPuntoPedido(false);
-    setError(null); // Limpiar errores al seleccionar artículo
+    setError(null);
   };
 
   const handleCantidadChange = (cantidad: number) => {
     setFormulario(prev => ({ ...prev, cantidad }));
-    
-    if (articuloSeleccionado && cantidad > 0 && cantidad < articuloSeleccionado.puntoPedido) {
-      setAdvertenciaPuntoPedido(true);
-    } else {
-      setAdvertenciaPuntoPedido(false);
-    }
+  };
+
+  const handleProveedorChange = (proveedorId: number) => {
+    setFormulario(prev => ({ ...prev, proveedorId }));
   };
 
   const validarFormulario = (): string[] => {
     const errores: string[] = [];
-    if (!formulario.proveedorId) errores.push('Debe seleccionar un proveedor');
     if (!formulario.articuloId) errores.push('Debe seleccionar un artículo');
+    if (!formulario.proveedorId) errores.push('Debe seleccionar un proveedor');
     if (formulario.cantidad <= 0) errores.push('La cantidad debe ser mayor a 0');
     return errores;
   };
@@ -181,12 +145,9 @@ const AltaOrdenCompra = () => {
     }
   };
 
-  if (loading && proveedores.length === 0) {
+  if (loading && articulosOrdenCompra.length === 0) {
     return <div>Cargando...</div>;
   }
-
-  // El manejo de errores principal se muestra dentro del layout
-  // para no perder el contexto de la página.
 
   return (
     <div className="ordenes-compra-container">
@@ -224,72 +185,85 @@ const AltaOrdenCompra = () => {
 
       <div className="formulario-container">
         <div className="formulario-seccion">
-          <h3><MdPerson /> 1. Proveedor</h3>
-          {proveedores.length === 0 ? (
-            <div className="alerta alerta-warning">
-              <h4>No hay proveedores cargados</h4>
-              <p>No se pueden crear órdenes de compra sin proveedores.</p>
+          <h3><MdInventory /> 1. Seleccionar Artículo</h3>
+          {articuloSeleccionado ? (
+            <div className="alerta alerta-success">
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem 0' }}>{articuloSeleccionado.nombreArticulo}</h4>
+                  <p style={{ margin: '0', color: '#666' }}>Código: {articuloSeleccionado.codArticulo}</p>
+                </div>
+                <button onClick={() => setMostrarModalArticulos(true)} className="btn btn-secondary">Cambiar</button>
+              </div>
             </div>
           ) : (
-            <div className="formulario-campo">
-              <label className="formulario-label">Seleccione un proveedor</label>
-              <select 
-                value={formulario.proveedorId || ''}
-                onChange={(e) => handleProveedorChange(Number(e.target.value))}
-                className="formulario-select"
-              >
-                <option value="" disabled>-- Seleccionar --</option>
-                {proveedores.map(proveedor => (
-                  <option key={proveedor.id} value={proveedor.id}>
-                    {proveedor.nombre || proveedor.nombreProveedor}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <button onClick={() => setMostrarModalArticulos(true)} disabled={loading} className="btn btn-primary">
+              {loading ? 'Cargando...' : 'Seleccionar artículo'}
+            </button>
           )}
         </div>
 
-        {formulario.proveedorId && (
+        {articuloSeleccionado && (
           <div className="formulario-seccion">
-            <h3><MdInventory /> 2. Seleccionar Artículo</h3>
-            {articuloSeleccionado ? (
-              <div className="alerta alerta-success">
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ margin: '0 0 0.5rem 0' }}>{articuloSeleccionado.nombre}</h4>
-                    <p style={{ margin: '0', color: '#666' }}>Código: {articuloSeleccionado.codigo}</p>
-                  </div>
-                  <button onClick={() => setMostrarModalArticulos(true)} className="btn btn-secondary">Cambiar</button>
+            <h3><MdPerson /> 2. Información del Proveedor</h3>
+            <div style={{ padding: '1.5rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+              <div className="formulario-campo">
+                <label className="formulario-label">Proveedor</label>
+                <select 
+                  value={formulario.proveedorId || ''}
+                  onChange={(e) => handleProveedorChange(Number(e.target.value))}
+                  className="formulario-select"
+                >
+                  <option value="" disabled>-- Seleccionar proveedor --</option>
+                  {proveedores.map(proveedor => (
+                    <option key={proveedor.id} value={proveedor.id}>
+                      {proveedor.nombre || proveedor.nombreProveedor}
+                      {proveedor.id === articuloSeleccionado.idProveedorPredeterminado && ' (Predeterminado)'}
+                    </option>
+                  ))}
+                </select>
+                <small style={{ color: '#6c757d', marginTop: '0.25rem', display: 'block' }}>
+                  Proveedor predeterminado: {articuloSeleccionado.nombreProveedorPredeterminado}
+                </small>
+              </div>
+              <div className="formulario-campo">
+                <label className="formulario-label">Lote Óptimo Sugerido</label>
+                <div style={{ padding: '0.75rem', backgroundColor: 'white', border: '1px solid #ced4da', borderRadius: '4px', color: '#28a745', fontWeight: 'bold' }}>
+                  {articuloSeleccionado.loteOptimo} unidades
                 </div>
               </div>
-            ) : (
-              <button onClick={() => setMostrarModalArticulos(true)} disabled={loading} className="btn btn-primary">
-                {loading ? 'Cargando...' : 'Seleccionar artículo'}
-              </button>
-            )}
+            </div>
           </div>
         )}
 
         {articuloSeleccionado && (
           <div className="formulario-seccion">
-            <h3><MdDescription /> 3. Formulario de Pedido</h3>
+            <h3><MdDescription /> 3. Cantidad a Solicitar</h3>
             <div style={{ padding: '1.5rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <div className="formulario-campo">
-                  <label className="formulario-label">Cantidad</label>
-                  <input type="number" value={formulario.cantidad} onChange={(e) => handleCantidadChange(Number(e.target.value))} className="formulario-input" min="1" />
+                <label className="formulario-label">Cantidad</label>
+                <input 
+                  type="number" 
+                  value={formulario.cantidad} 
+                  onChange={(e) => handleCantidadChange(Number(e.target.value))} 
+                  className="formulario-input" 
+                  min="1" 
+                />
+                <small style={{ color: '#6c757d', marginTop: '0.25rem', display: 'block' }}>
+                  Lote óptimo sugerido: {articuloSeleccionado.loteOptimo} unidades
+                </small>
               </div>
-              {advertenciaPuntoPedido && (
-                <div className="alerta alerta-warning" style={{ marginTop: '0.5rem' }}>
-                  <strong>Advertencia:</strong> La cantidad es menor al punto de pedido ({articuloSeleccionado.puntoPedido} unidades).
-                </div>
-              )}
             </div>
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
           <button onClick={() => navigate('/orden-compra')} className="btn btn-secondary">Cancelar</button>
-          <button onClick={handleGuardar} disabled={guardando || !formulario.articuloId || formulario.cantidad <= 0} className="btn btn-success">
+          <button 
+            onClick={handleGuardar} 
+            disabled={guardando || !formulario.articuloId || formulario.cantidad <= 0} 
+            className="btn btn-success"
+          >
             {guardando ? 'Creando orden...' : 'Crear orden de compra'}
           </button>
         </div>
@@ -303,23 +277,33 @@ const AltaOrdenCompra = () => {
               <button onClick={() => setMostrarModalArticulos(false)} className="modal-close">×</button>
             </div>
             <div className="formulario-campo">
-              <input type="text" placeholder="Buscar artículos por nombre o código..." value={busquedaArticulos} onChange={(e) => handleBuscarArticulos(e.target.value)} className="formulario-input" />
+              <input 
+                type="text" 
+                placeholder="Buscar artículos por nombre o código..." 
+                value={busquedaArticulos} 
+                onChange={(e) => handleBuscarArticulos(e.target.value)} 
+                className="formulario-input" 
+              />
             </div>
             <div style={{ maxHeight: '400px', overflow: 'auto' }}>
               {loading ? <p>Cargando...</p> : (articulosFiltrados.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#6c757d' }}>No se encontraron artículos para este proveedor.</p>
+                <p style={{ textAlign: 'center', color: '#6c757d' }}>No se encontraron artículos.</p>
               ) : (
                 <div style={{ display: 'grid', gap: '0.5rem' }}>
                   {articulosFiltrados.map(articulo => (
-                    <div key={articulo.id} onClick={() => handleSeleccionarArticulo(articulo)} className="articulo-seleccionable">
+                    <div key={articulo.idArticulo} onClick={() => handleSeleccionarArticulo(articulo)} className="articulo-seleccionable">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <h4 style={{ margin: '0 0 0.25rem 0' }}>{articulo.nombre}</h4>
-                          <p style={{ margin: '0', color: '#666' }}>Código: {articulo.codigo}</p>
+                          <h4 style={{ margin: '0 0 0.25rem 0' }}>{articulo.nombreArticulo}</h4>
+                          <p style={{ margin: '0', color: '#666' }}>Código: {articulo.codArticulo}</p>
+                          <p style={{ margin: '0.25rem 0 0 0', color: '#28a745', fontSize: '0.875rem' }}>
+                            Proveedor: {articulo.nombreProveedorPredeterminado}
+                          </p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', color: '#28a745' }}>${articulo.costoVenta.toLocaleString()}</p>
-                          <p style={{ margin: '0', fontSize: '0.875rem', color: '#666' }}>Stock: {articulo.stockActual}</p>
+                          <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', color: '#007bff' }}>
+                            Lote óptimo: {articulo.loteOptimo}
+                          </p>
                         </div>
                       </div>
                     </div>
