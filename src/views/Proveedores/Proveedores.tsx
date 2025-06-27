@@ -235,21 +235,6 @@ const Proveedores = () => {
                 placeholder="Buscar proveedor..."
               />
             </div>
-            {busqueda && (
-              <button 
-                onClick={limpiarBusqueda}
-                style={{ 
-                  padding: '0.5rem 1rem', 
-                  backgroundColor: '#6c757d', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '4px', 
-                  cursor: 'pointer' 
-                }}
-              >
-                Limpiar búsqueda
-              </button>
-            )}
           </div>
 
           {proveedoresFiltrados.length > 0 && (
